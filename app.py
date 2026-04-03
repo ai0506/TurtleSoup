@@ -362,4 +362,4 @@ if __name__ == '__main__':
     if os.path.exists(questions_json_path):
         load_questions_from_json(questions_json_path)
     
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=False)
