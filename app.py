@@ -1,12 +1,13 @@
 import os
 import json
 from datetime import datetime
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, send_file
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from functools import wraps
 from config import Config
 from models import init_db, load_questions_from_json, User, Question, Session, Message
 import ai_service
+import os
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -123,6 +124,7 @@ def get_session(session_id):
     return jsonify({
         'session_id': session_id,
         'question_id': session['question_id'],
+        'updated_at': session['updated_at'],
         'messages': messages
     })
 
@@ -182,13 +184,10 @@ def send_message():
         return jsonify({'error': '消息内容不能为空'}), 400
     
     if not session_id and question_id:
-        session = Session.get_by_user_and_question(current_user.id, question_id)
-        if session:
-            session_id = session['id']
-        else:
-            question = Question.get(question_id)
-            name = f"{question['title']} - {datetime.now().strftime('%Y-%m-%d %H:%M')}"
-            session_id = Session.create(current_user.id, question_id, name)
+        # 不查找已存在的会话，每次都创建新会话
+        question = Question.get(question_id)
+        name = f"{question['title']} - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        session_id = Session.create(current_user.id, question_id, name)
     
     if not session_id:
         return jsonify({'error': '会话不存在'}), 404
@@ -205,13 +204,16 @@ def send_message():
     
     Message.create(session_id, 'user', content)
     
-    if '提示' in content:
-        result = ai_service.give_hint(question['surface'], question['bottom'], known_facts)
-        ai_response = result['hint']
-        summary = result['summary']
-        response_type = 'hint'
+    # 关键词列表
+    reasoning_keywords = ['推理：', '推理', '推断', '猜测', '推测']
+    hint_keywords = ['提示', '提示：', '线索', '帮助', '提示一下']
     
-    elif '推理' in content:
+    # 1. 首先检查直接关键词
+    is_reasoning = any(keyword in content for keyword in reasoning_keywords)
+    is_hint = any(keyword in content for keyword in hint_keywords)
+    
+    if is_reasoning:
+        # 调用推理接口
         reasoning = content
         result = ai_service.judge_reasoning(reasoning, question['surface'], question['bottom'], points_data)
         score = ai_service.calculate_score(result['results'], len(points_data))
@@ -223,11 +225,43 @@ def send_message():
         if score == "正确":
             ai_response += f"\n\n完整汤底：\n{question['bottom']}"
     
-    else:
-        result = ai_service.answer_question(content, question['surface'], question['bottom'], known_facts)
-        ai_response = result['answer_type']
+    elif is_hint:
+        # 调用提示接口
+        result = ai_service.give_hint(question['surface'], question['bottom'], known_facts)
+        ai_response = result['hint']
         summary = result['summary']
-        response_type = 'answer'
+        response_type = 'hint'
+    
+    else:
+        # 2. 如果没有直接关键词，使用deepseek进行分类
+        classification = ai_service.classify_message(content)
+        
+        if classification == 'reasoning':
+            # 调用推理接口
+            reasoning = content
+            result = ai_service.judge_reasoning(reasoning, question['surface'], question['bottom'], points_data)
+            score = ai_service.calculate_score(result['results'], len(points_data))
+            
+            ai_response = f"推理判定：{score}"
+            summary = None
+            response_type = 'reasoning'
+            
+            if score == "正确":
+                ai_response += f"\n\n完整汤底：\n{question['bottom']}"
+        
+        elif classification == 'hint':
+            # 调用提示接口
+            result = ai_service.give_hint(question['surface'], question['bottom'], known_facts)
+            ai_response = result['hint']
+            summary = result['summary']
+            response_type = 'hint'
+        
+        else:
+            # 3. 否则视为普通问题，调用回答接口
+            result = ai_service.answer_question(content, question['surface'], question['bottom'], known_facts)
+            ai_response = result['answer_type']
+            summary = result['summary']
+            response_type = 'answer'
     
     Message.create(session_id, 'assistant', ai_response, summary)
     Session.update_timestamp(session_id)
@@ -355,6 +389,57 @@ def admin_delete_user(user_id):
     User.delete(user_id)
     return jsonify({'success': True})
 
+@app.route('/api/admin/user/<int:user_id>/password', methods=['PUT'])
+@admin_required
+def admin_change_password(user_id):
+    data = request.get_json()
+    user = User.get(user_id)
+    
+    if not user:
+        return jsonify({'error': '用户不存在'}), 404
+    
+    user.update_password(data['password'])
+    return jsonify({'success': True})
+
+@app.route('/api/admin/database/export')
+@admin_required
+def export_database():
+    db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'turtlesoup.db')
+    if not os.path.exists(db_path):
+        return jsonify({'error': '数据库文件不存在'}), 404
+    
+    return send_file(db_path, as_attachment=True, download_name='turtlesoup.db')
+
+@app.route('/api/admin/database/import', methods=['POST'])
+@admin_required
+def import_database():
+    if 'db_file' not in request.files:
+        return jsonify({'error': '请选择文件'}), 400
+    
+    file = request.files['db_file']
+    if file.filename == '':
+        return jsonify({'error': '请选择文件'}), 400
+    
+    if not file.filename.endswith('.db'):
+        return jsonify({'error': '请选择.db文件'}), 400
+    
+    # 保存上传的文件到数据库路径
+    db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'turtlesoup.db')
+    
+    # 先备份原数据库
+    backup_path = db_path + '.bak'
+    if os.path.exists(db_path):
+        os.replace(db_path, backup_path)
+    
+    try:
+        file.save(db_path)
+        return jsonify({'success': True})
+    except Exception as e:
+        # 如果出错，恢复备份
+        if os.path.exists(backup_path):
+            os.replace(backup_path, db_path)
+        return jsonify({'error': f'导入失败: {str(e)}'}), 500
+
 if __name__ == '__main__':
     init_db()
     
@@ -362,4 +447,4 @@ if __name__ == '__main__':
     if os.path.exists(questions_json_path):
         load_questions_from_json(questions_json_path)
     
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=False)
+    app.run(debug=True)

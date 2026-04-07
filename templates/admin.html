@@ -277,6 +277,7 @@
         <div class="tabs">
             <button class="tab-btn active" data-tab="questions">题库管理</button>
             <button class="tab-btn" data-tab="users">用户管理</button>
+            <button class="tab-btn" data-tab="database">数据库管理</button>
         </div>
         
         <div id="questionsTab" class="tab-content active">
@@ -299,6 +300,25 @@
                     </thead>
                     <tbody id="usersTable"></tbody>
                 </table>
+            </div>
+        </div>
+        
+        <div id="databaseTab" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">数据库管理</span>
+                </div>
+                <div class="card-body">
+                    <p>管理数据库备份和恢复功能</p>
+                    <div style="margin-top: 20px;">
+                        <button class="btn btn-primary" onclick="exportDatabase()">导出数据库 (turtlesoup.db)</button>
+                        <div style="margin-top: 20px;">
+                            <label style="display: block; margin-bottom: 10px;">导入数据库：</label>
+                            <input type="file" id="dbFileInput" accept=".db">
+                            <button class="btn btn-danger" onclick="importDatabase()" style="margin-left: 10px;">导入并覆盖</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -377,6 +397,27 @@
         </div>
     </div>
     
+    <div class="modal" id="passwordModal">
+        <div class="modal-content">
+            <h2 class="modal-title">修改密码</h2>
+            <form id="passwordForm">
+                <input type="hidden" id="userIdForPassword">
+                <div class="form-group">
+                    <label>新密码</label>
+                    <input type="password" id="newUserPassword" required>
+                </div>
+                <div class="form-group">
+                    <label>确认新密码</label>
+                    <input type="password" id="confirmNewPassword" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary">保存</button>
+                    <button type="button" class="btn btn-secondary" id="cancelPasswordBtn">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
     <script>
         let questions = [];
         let users = [];
@@ -399,8 +440,10 @@
             document.getElementById('addUserBtn').addEventListener('click', () => openUserModal());
             document.getElementById('questionForm').addEventListener('submit', saveQuestion);
             document.getElementById('userForm').addEventListener('submit', createUser);
+            document.getElementById('passwordForm').addEventListener('submit', changeUserPassword);
             document.getElementById('cancelQuestionBtn').addEventListener('click', closeQuestionModal);
             document.getElementById('cancelUserBtn').addEventListener('click', closeUserModal);
+            document.getElementById('cancelPasswordBtn').addEventListener('click', closePasswordModal);
             document.getElementById('addPointBtn').addEventListener('click', addPointRow);
         }
         
@@ -470,7 +513,8 @@
                         </select>
                     </td>
                     <td>
-                        <button class="btn btn-danger" onclick="deleteUser(${u.id})">删除</button>
+                        <button class="btn btn-primary" onclick="changePassword(${u.id})">修改密码</button>
+                        <button class="btn btn-danger" onclick="deleteUser(${u.id})">&nbsp;&nbsp;删除&nbsp;&nbsp;</button>
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -635,6 +679,98 @@
             } else {
                 const error = await response.json();
                 alert(error.error || '删除失败');
+            }
+        }
+        
+        function changePassword(userId) {
+            document.getElementById('userIdForPassword').value = userId;
+            document.getElementById('passwordForm').reset();
+            document.getElementById('passwordModal').classList.add('show');
+        }
+        
+        function closePasswordModal() {
+            document.getElementById('passwordModal').classList.remove('show');
+        }
+        
+        async function changeUserPassword(e) {
+            e.preventDefault();
+            
+            const userId = document.getElementById('userIdForPassword').value;
+            const newPassword = document.getElementById('newUserPassword').value;
+            const confirmPassword = document.getElementById('confirmNewPassword').value;
+            
+            if (newPassword !== confirmPassword) {
+                alert('两次输入的密码不一致');
+                return;
+            }
+            
+            const response = await fetch(`/api/admin/user/${userId}/password`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password: newPassword })
+            });
+            
+            if (response.ok) {
+                closePasswordModal();
+                alert('密码修改成功');
+            } else {
+                const error = await response.json();
+                alert(error.error || '修改失败');
+            }
+        }
+        
+        async function exportDatabase() {
+            const response = await fetch('/api/admin/database/export');
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'turtlesoup.db';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            } else {
+                const error = await response.json();
+                alert(error.error || '导出失败');
+            }
+        }
+        
+        async function importDatabase() {
+            const fileInput = document.getElementById('dbFileInput');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('请选择要导入的数据库文件');
+                return;
+            }
+            
+            if (!file.name.endsWith('.db')) {
+                alert('请选择.db文件');
+                return;
+            }
+            
+            if (!confirm('确定要导入并覆盖当前数据库吗？此操作不可恢复！')) {
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('db_file', file);
+            
+            const response = await fetch('/api/admin/database/import', {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (response.ok) {
+                alert('数据库导入成功');
+                fileInput.value = '';
+                // 刷新页面以加载新数据
+                location.reload();
+            } else {
+                const error = await response.json();
+                alert(error.error || '导入失败');
             }
         }
         

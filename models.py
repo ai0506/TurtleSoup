@@ -184,6 +184,14 @@ class User(UserMixin):
         conn.commit()
         self.points = new_points
         conn.close()
+    
+    def update_password(self, new_password):
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("UPDATE users SET password_hash = ? WHERE id = ?", (generate_password_hash(new_password), self.id))
+        conn.commit()
+        self.password_hash = generate_password_hash(new_password)
+        conn.close()
 
 class Question:
     @staticmethod
@@ -247,7 +255,7 @@ class Session:
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(
-            "INSERT INTO sessions (user_id, question_id, name) VALUES (?, ?, ?)",
+            "INSERT INTO sessions (user_id, question_id, name, created_at, updated_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
             (user_id, question_id, name)
         )
         conn.commit()
@@ -329,7 +337,7 @@ class Message:
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT * FROM messages WHERE session_id = ? ORDER BY created_at",
+            "SELECT * FROM messages WHERE session_id = ? ORDER BY created_at ASC",
             (session_id,)
         )
         rows = cursor.fetchall()

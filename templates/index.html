@@ -540,9 +540,9 @@
     <script>
         let currentSessionId = null;
         let currentQuestionId = null;
-        let questions = [];
         let messageRecords = [];
         let pendingDeleteSessionId = null;
+        let sessionEnded = false; // 标记会话是否已结束
         
         async function init() {
             await loadUserInfo();
@@ -638,6 +638,7 @@
             
             currentQuestionId = questionId;
             currentSessionId = null;
+            sessionEnded = false; // 重置会话状态
             
             const response = await fetch(`/api/question/${questionId}`);
             const question = await response.json();
@@ -648,6 +649,10 @@
             document.getElementById('qaList').innerHTML = '<div class="empty-hint">暂无问答记录</div>';
             document.getElementById('factsList').innerHTML = '<div class="empty-hint">暂无已知事实</div>';
             messageRecords = [];
+            
+            // 启用输入框和发送按钮
+            document.getElementById('messageInput').disabled = false;
+            document.getElementById('sendBtn').disabled = false;
         }
         
         async function loadHistory() {
@@ -659,6 +664,13 @@
             
             for (const [groupName, sessions] of Object.entries(groups)) {
                 if (sessions.length === 0) continue;
+                
+                // 在每个分组内按时间排序（最新的在前）
+                sessions.sort((a, b) => {
+                    const dateA = new Date(a.updated_at);
+                    const dateB = new Date(b.updated_at);
+                    return dateB - dateA;
+                });
                 
                 const groupDiv = document.createElement('div');
                 groupDiv.className = 'history-group';
@@ -719,6 +731,25 @@
             currentSessionId = sessionId;
             processMessages(data.messages);
             renderMessages(data.messages);
+            
+            // 检查会话是否已结束（是否包含正确推理）
+            const hasCorrectReasoning = data.messages.some(msg => 
+                msg.role === 'assistant' && msg.content.includes('推理判定：正确')
+            );
+            
+            sessionEnded = hasCorrectReasoning;
+            
+            // 更新输入框和发送按钮状态
+            const messageInput = document.getElementById('messageInput');
+            const sendBtn = document.getElementById('sendBtn');
+            
+            if (sessionEnded) {
+                messageInput.disabled = true;
+                sendBtn.disabled = true;
+            } else {
+                messageInput.disabled = false;
+                sendBtn.disabled = false;
+            }
             
             document.querySelectorAll('.history-item').forEach(item => {
                 item.classList.toggle('active', parseInt(item.dataset.sessionId) === sessionId);
@@ -834,6 +865,12 @@
             
             if (!content || !currentQuestionId) return;
             
+            // 检查会话是否已结束
+            if (sessionEnded) {
+                alert('该会话已结束，无法继续发送消息');
+                return;
+            }
+            
             input.value = '';
             input.style.height = 'auto';
             addMessageToUI('user', content);
@@ -894,6 +931,11 @@
                     if (bottomMatch) {
                         document.getElementById('successModalBody').textContent = bottomMatch[1];
                         document.getElementById('successModal').classList.add('show');
+                        // 标记会话已结束
+                        sessionEnded = true;
+                        // 禁用输入框和发送按钮
+                        document.getElementById('messageInput').disabled = true;
+                        document.getElementById('sendBtn').disabled = true;
                     }
                 }
                 
@@ -903,7 +945,9 @@
                 console.error('发送失败:', error);
                 alert('发送失败，请重试');
             } finally {
-                document.getElementById('sendBtn').disabled = false;
+                if (!sessionEnded) {
+                    document.getElementById('sendBtn').disabled = false;
+                }
             }
         }
         
