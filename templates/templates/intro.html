@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>游戏介绍 - 海龟汤推理游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 36px;
+            margin-bottom: 15px;
+        }
+        .header p {
+            font-size: 18px;
+            opacity: 0.9;
+        }
+        .nav {
+            padding: 15px 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+        }
+        .nav a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .nav a:hover {
+            text-decoration: underline;
+        }
+        .content {
+            padding: 40px;
+        }
+        .section {
+            margin-bottom: 50px;
+        }
+        .section-title {
+            font-size: 26px;
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+            display: inline-block;
+        }
+        .section-content {
+            font-size: 16px;
+            line-height: 1.8;
+            color: #555;
+        }
+        .section-content p {
+            margin-bottom: 15px;
+        }
+        .game-rules {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        .game-rules ol {
+            margin-left: 20px;
+        }
+        .game-rules li {
+            margin-bottom: 12px;
+        }
+        .screenshot-section {
+            margin-top: 30px;
+        }
+        .screenshot-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 30px;
+            margin-top: 25px;
+        }
+        .screenshot-item {
+            background: #f8f9fa;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #e0e0e0;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .screenshot-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+        .screenshot-img {
+            width: 100%;
+            height: auto;
+            display: block;
+            background: linear-gradient(135deg, #e8f0fe 0%, #f0f4ff 100%);
+        }
+        .screenshot-desc {
+            padding: 20px;
+            text-align: center;
+            font-size: 15px;
+            color: #333;
+            font-weight: 500;
+            background: white;
+        }
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 25px;
+            margin-top: 25px;
+        }
+        .feature-item {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            text-align: center;
+            transition: transform 0.3s;
+        }
+        .feature-item:hover {
+            transform: translateY(-3px);
+        }
+        .feature-icon {
+            font-size: 40px;
+            margin-bottom: 15px;
+        }
+        .feature-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .feature-desc {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.5;
+        }
+        .cta-section {
+            text-align: center;
+            padding: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            margin-top: 20px;
+        }
+        .cta-section p {
+            color: rgba(255,255,255,0.9);
+            margin-bottom: 25px;
+            font-size: 18px;
+        }
+        .cta-btn {
+            display: inline-block;
+            padding: 18px 50px;
+            background: white;
+            color: #667eea;
+            text-decoration: none;
+            border-radius: 30px;
+            font-size: 18px;
+            font-weight: bold;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .cta-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        }
+        .answer-types {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .answer-type {
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 500;
+        }
+        .answer-type.yes { background: #d4edda; color: #155724; border: 2px solid #28a745; }
+        .answer-type.no { background: #f8d7da; color: #721c24; border: 2px solid #dc3545; }
+        .answer-type.irrelevant { background: #fff3cd; color: #856404; border: 2px solid #ffc107; }
+        .answer-type.vague { background: #cce5ff; color: #004085; border: 2px solid #007bff; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🐢 海龟汤推理游戏</h1>
+            <p>一个充满悬疑与推理的文字冒险游戏</p>
+        </div>
+        
+        <div class="nav">
+            <a href="/">← 返回游戏</a>
+        </div>
+        
+        <div class="content">
+            <div class="section">
+                <h2 class="section-title">什么是海龟汤？</h2>
+                <div class="section-content">
+                    <p>海龟汤是一种情境推理游戏，也被称为"水平思考游戏"或"情境猜谜"。游戏名称来源于经典题目"餐厅自杀"，讲述一个男人喝完海龟汤后自杀的故事。</p>
+                    <p>在游戏中，玩家只能看到故事的一小部分（汤面），需要通过提问来推断完整的故事真相（汤底）。主持人只能回答"是"、"否"、"与此无关"或"模糊问题"。</p>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2 class="section-title">游戏规则</h2>
+                <div class="game-rules">
+                    <ol>
+                        <li><strong>选择题目：</strong>点击"选择题目"按钮，从题库中选择一道题目，阅读"汤面"（故事片段）</li>
+                        <li><strong>提问推理：</strong>输入问题进行推理，AI主持人会回答以下四种类型之一</li>
+                        <li><strong>获取提示：</strong>如果卡住了，可以在消息中提到"提示"获取线索</li>
+                        <li><strong>提交推理：</strong>在消息中提到"推理"，提交你对完整故事的猜测</li>
+                        <li><strong>评分标准：</strong>正确（覆盖70%以上关键点）、部分正确（覆盖20%-70%）、错误（覆盖20%以下）</li>
+                    </ol>
+                </div>
+                
+                <div class="answer-types">
+                    <div class="answer-type yes">是</div>
+                    <div class="answer-type no">否</div>
+                    <div class="answer-type irrelevant">与此无关</div>
+                    <div class="answer-type vague">模糊问题</div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2 class="section-title">游戏特色</h2>
+                <div class="features">
+                    <div class="feature-item">
+                        <div class="feature-icon">🤖</div>
+                        <div class="feature-title">AI主持</div>
+                        <div class="feature-desc">智能AI作为主持人，自动判断问题并给出回答</div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">📚</div>
+                        <div class="feature-title">丰富题库</div>
+                        <div class="feature-desc">多种难度分类，包含简单、中等、困难、抽象题目</div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">📊</div>
+                        <div class="feature-title">智能评分</div>
+                        <div class="feature-desc">基于关键事实覆盖率的智能评分系统</div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">💾</div>
+                        <div class="feature-title">历史记录</div>
+                        <div class="feature-desc">自动保存游戏进度，随时继续推理</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section screenshot-section">
+                <h2 class="section-title">游戏截图</h2>
+                <div class="screenshot-grid">
+                    <div class="screenshot-item">
+                        <img src="/static/screenshots/1.png" alt="游戏主界面" class="screenshot-img">
+                        <div class="screenshot-desc">游戏主界面 - 登录后即可开始推理之旅</div>
+                    </div>
+                    <div class="screenshot-item">
+                        <img src="/static/screenshots/2.png" alt="选择题目" class="screenshot-img">
+                        <div class="screenshot-desc">题目选择 - 按难度分类，选择你感兴趣的题目</div>
+                    </div>
+                    <div class="screenshot-item">
+                        <img src="/static/screenshots/3.png" alt="问答过程" class="screenshot-img">
+                        <div class="screenshot-desc">问答过程 - 四种颜色对应四种回答类型，右侧实时显示事实总结</div>
+                    </div>
+                    <div class="screenshot-item">
+                        <img src="/static/screenshots/5.png" alt="推理成功" class="screenshot-img">
+                        <div class="screenshot-desc">推理成功 - 揭示完整汤底，体验真相大白的快感</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <div class="cta-section">
+                    <p>准备好了吗？开始你的推理之旅吧！</p>
+                    <a href="/" class="cta-btn">立即开始</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
