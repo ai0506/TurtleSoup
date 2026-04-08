@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理后台 - 海龟汤推理游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header h1 {
+            font-size: 20px;
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .nav-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .nav-btn:hover, .nav-btn.active {
+            background: rgba(255,255,255,0.3);
+        }
+        .container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .tab-btn {
+            padding: 10px 20px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .tab-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .card-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+        .card-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .btn {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: opacity 0.3s;
+        }
+        .btn:hover {
+            opacity: 0.8;
+        }
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        .card-body {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .card-body p {
+            margin-bottom: 10px;
+        }
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            background: #e8f0fe;
+            color: #667eea;
+        }
+        .add-btn {
+            margin-bottom: 20px;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal.show {
+            display: flex;
+        }
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-title {
+            font-size: 20px;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
+        }
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .points-container {
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .point-item {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+        .point-item input {
+            flex: 1;
+        }
+        .point-item .remove-point {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .add-point-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .table-container {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+        .inline-edit {
+            width: 80px;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+        .role-select {
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🐢 管理后台</h1>
+        <div class="header-right">
+            <a href="/" class="nav-btn">游戏主页</a>
+            <a href="/logout" class="nav-btn">退出登录</a>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="questions">题库管理</button>
+            <button class="tab-btn" data-tab="users">用户管理</button>
+            <button class="tab-btn" data-tab="database">数据库管理</button>
+        </div>
+        
+        <div id="questionsTab" class="tab-content active">
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <button class="btn btn-primary add-btn" id="addQuestionBtn">+ 新增题目</button>
+                <button class="btn btn-success" id="exportQuestionsBtn">导出题库</button>
+            </div>
+            <div class="card-grid" id="questionsGrid"></div>
+        </div>
+        
+        <div id="usersTab" class="tab-content">
+            <button class="btn btn-primary add-btn" id="addUserBtn">+ 新增用户</button>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>用户名</th>
+                            <th>积分</th>
+                            <th>角色</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTable"></tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div id="databaseTab" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">数据库管理</span>
+                </div>
+                <div class="card-body">
+                    <p>管理数据库备份和恢复功能</p>
+                    <div style="margin-top: 20px;">
+                        <button class="btn btn-primary" onclick="exportDatabase()">导出数据库 (turtlesoup.db)</button>
+                        <div style="margin-top: 20px;">
+                            <label style="display: block; margin-bottom: 10px;">导入数据库：</label>
+                            <input type="file" id="dbFileInput" accept=".db">
+                            <button class="btn btn-danger" onclick="importDatabase()" style="margin-left: 10px;">导入并覆盖</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal" id="questionModal">
+        <div class="modal-content">
+            <h2 class="modal-title" id="questionModalTitle">新增题目</h2>
+            <form id="questionForm">
+                <input type="hidden" id="originalQuestionId">
+                <div class="form-group">
+                    <label>题目ID</label>
+                    <input type="number" id="questionId" required min="1" readonly style="background: #f5f5f5; cursor: not-allowed;">
+                </div>
+                <div class="form-group">
+                    <label>标题</label>
+                    <input type="text" id="questionTitle" required>
+                </div>
+                <div class="form-group">
+                    <label>难度</label>
+                    <select id="questionDifficulty">
+                        <option value="简单">简单</option>
+                        <option value="中等" selected>中等</option>
+                        <option value="困难">困难</option>
+                        <option value="抽象">抽象</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>汤面（公开的故事片段）</label>
+                    <textarea id="questionSurface" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label>汤底（完整故事真相）</label>
+                    <textarea id="questionBottom" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label>评分点（关键事实）</label>
+                    <div class="points-container" id="pointsContainer"></div>
+                    <button type="button" class="add-point-btn" id="addPointBtn">+ 添加评分点</button>
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary">保存</button>
+                    <button type="button" class="btn btn-secondary" id="cancelQuestionBtn">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="modal" id="userModal">
+        <div class="modal-content">
+            <h2 class="modal-title">新增用户</h2>
+            <form id="userForm">
+                <div class="form-group">
+                    <label>用户名</label>
+                    <input type="text" id="newUsername" required>
+                </div>
+                <div class="form-group">
+                    <label>密码</label>
+                    <input type="password" id="newPassword" required>
+                </div>
+                <div class="form-group">
+                    <label>初始积分</label>
+                    <input type="number" id="newPoints" value="100" min="0">
+                </div>
+                <div class="form-group">
+                    <label>角色</label>
+                    <select id="newRole">
+                        <option value="user">普通用户</option>
+                        <option value="admin">管理员</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary">创建</button>
+                    <button type="button" class="btn btn-secondary" id="cancelUserBtn">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="modal" id="passwordModal">
+        <div class="modal-content">
+            <h2 class="modal-title">修改密码</h2>
+            <form id="passwordForm">
+                <input type="hidden" id="userIdForPassword">
+                <div class="form-group">
+                    <label>新密码</label>
+                    <input type="password" id="newUserPassword" required>
+                </div>
+                <div class="form-group">
+                    <label>确认新密码</label>
+                    <input type="password" id="confirmNewPassword" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary">保存</button>
+                    <button type="button" class="btn btn-secondary" id="cancelPasswordBtn">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        let questions = [];
+        let users = [];
+        let editingQuestionId = null;
+        
+        async function init() {
+            await loadQuestions();
+            await loadUsers();
+            
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    btn.classList.add('active');
+                    document.getElementById(btn.dataset.tab + 'Tab').classList.add('active');
+                });
+            });
+            
+            document.getElementById('addQuestionBtn').addEventListener('click', () => openQuestionModal());
+            document.getElementById('addUserBtn').addEventListener('click', () => openUserModal());
+            document.getElementById('exportQuestionsBtn').addEventListener('click', exportQuestions);
+            document.getElementById('questionForm').addEventListener('submit', saveQuestion);
+            document.getElementById('userForm').addEventListener('submit', createUser);
+            document.getElementById('passwordForm').addEventListener('submit', changeUserPassword);
+            document.getElementById('cancelQuestionBtn').addEventListener('click', closeQuestionModal);
+            document.getElementById('cancelUserBtn').addEventListener('click', closeUserModal);
+            document.getElementById('cancelPasswordBtn').addEventListener('click', closePasswordModal);
+            document.getElementById('addPointBtn').addEventListener('click', addPointRow);
+        }
+        
+        async function loadQuestions() {
+            const response = await fetch('/api/admin/questions');
+            questions = await response.json();
+            renderQuestions();
+        }
+        
+        async function loadUsers() {
+            const response = await fetch('/api/admin/users');
+            users = await response.json();
+            renderUsers();
+        }
+        
+        function renderQuestions() {
+            const grid = document.getElementById('questionsGrid');
+            grid.innerHTML = '';
+            
+            questions.forEach(q => {
+                const difficultyColors = {
+                    '简单': '#28a745',
+                    '中等': '#ffc107',
+                    '困难': '#dc3545',
+                    '抽象': '#6f42c1'
+                };
+                const diffColor = difficultyColors[q.difficulty] || '#667eea';
+                
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <div class="card-header">
+                        <span class="card-title">${q.title}</span>
+                        <div>
+                            <span class="badge" style="background: ${diffColor}; color: white; margin-right: 5px;">${q.difficulty || '中等'}</span>
+                            <span class="badge">ID: ${q.id}</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>汤面:</strong> ${q.surface}</p>
+                        <p><strong>汤底:</strong> ${q.bottom}</p>
+                        <p><strong>评分点:</strong> ${q.points_count} 个</p>
+                    </div>
+                    <div class="card-actions">
+                        <button class="btn btn-primary" onclick="editQuestion(${q.id})">编辑</button>
+                        <button class="btn btn-danger" onclick="deleteQuestion(${q.id})">删除</button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+        
+        function renderUsers() {
+            const tbody = document.getElementById('usersTable');
+            tbody.innerHTML = '';
+            
+            users.forEach(u => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${u.id}</td>
+                    <td>${u.username}</td>
+                    <td><input type="number" class="inline-edit" value="${u.points}" data-user-id="${u.id}" onchange="updateUserPoints(${u.id}, this.value)"></td>
+                    <td>
+                        <select class="role-select" data-user-id="${u.id}" onchange="updateUserRole(${u.id}, this.value)">
+                            <option value="user" ${u.role === 'user' ? 'selected' : ''}>普通用户</option>
+                            <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>管理员</option>
+                        </select>
+                    </td>
+                    <td>
+                        <button class="btn btn-primary" onclick="changePassword(${u.id})">修改密码</button>
+                        <button class="btn btn-danger" onclick="deleteUser(${u.id})">&nbsp;&nbsp;删除&nbsp;&nbsp;</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+        
+        async function editQuestion(id) {
+            const response = await fetch(`/api/admin/question/${id}`);
+            const q = await response.json();
+            
+            editingQuestionId = id;
+            document.getElementById('originalQuestionId').value = id;
+            document.getElementById('questionId').value = q.id;
+            document.getElementById('questionTitle').value = q.title;
+            document.getElementById('questionDifficulty').value = q.difficulty || '中等';
+            document.getElementById('questionSurface').value = q.surface;
+            document.getElementById('questionBottom').value = q.bottom;
+            document.getElementById('questionModalTitle').textContent = '编辑题目';
+            
+            const container = document.getElementById('pointsContainer');
+            container.innerHTML = '';
+            q.points.forEach((p, index) => addPointRow(p));
+            
+            document.getElementById('questionModal').classList.add('show');
+        }
+        
+        async function openQuestionModal() {
+            editingQuestionId = null;
+            document.getElementById('questionForm').reset();
+            document.getElementById('questionModalTitle').textContent = '新增题目';
+            document.getElementById('pointsContainer').innerHTML = '';
+            
+            // 自动生成题目ID
+            const nextId = questions.length > 0 ? Math.max(...questions.map(q => q.id)) + 1 : 1;
+            document.getElementById('questionId').value = nextId;
+            
+            addPointRow();
+            document.getElementById('questionModal').classList.add('show');
+        }
+        
+        function closeQuestionModal() {
+            document.getElementById('questionModal').classList.remove('show');
+        }
+        
+        function addPointRow(point = null) {
+            const container = document.getElementById('pointsContainer');
+            const div = document.createElement('div');
+            div.className = 'point-item';
+            div.innerHTML = `
+                <input type="number" placeholder="ID" value="${point ? point.id : container.children.length + 1}" style="width: 60px; background: #f5f5f5; cursor: not-allowed;" class="point-id" readonly>
+                <input type="text" placeholder="关键事实描述" value="${point ? point.text : ''}" class="point-text">
+                <input type="text" placeholder="可接受表述（逗号分隔）" value="${point && point.accept ? point.accept.join(', ') : ''}" class="point-accept">
+                <button type="button" class="remove-point" onclick="this.parentElement.remove()">✕</button>
+            `;
+            container.appendChild(div);
+        }
+        
+        async function saveQuestion(e) {
+            e.preventDefault();
+            
+            const points = [];
+            document.querySelectorAll('#pointsContainer .point-item').forEach((item, index) => {
+                const text = item.querySelector('.point-text').value.trim();
+                const acceptStr = item.querySelector('.point-accept').value.trim();
+                
+                if (text) {
+                    points.push({
+                        id: index + 1, // 自动生成评分标准ID，从1开始
+                        text: text,
+                        accept: acceptStr ? acceptStr.split(',').map(s => s.trim()) : []
+                    });
+                }
+            });
+            
+            const data = {
+                id: parseInt(document.getElementById('questionId').value),
+                title: document.getElementById('questionTitle').value,
+                difficulty: document.getElementById('questionDifficulty').value,
+                surface: document.getElementById('questionSurface').value,
+                bottom: document.getElementById('questionBottom').value,
+                points: points
+            };
+            
+            const originalId = document.getElementById('originalQuestionId').value;
+            const url = editingQuestionId ? `/api/admin/question/${originalId}` : '/api/admin/question';
+            const method = editingQuestionId ? 'PUT' : 'POST';
+            
+            const response = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            
+            if (response.ok) {
+                closeQuestionModal();
+                await loadQuestions();
+            } else {
+                const error = await response.json();
+                alert(error.error || '保存失败');
+            }
+        }
+        
+        async function deleteQuestion(id) {
+            if (!confirm('确定要删除这道题目吗？')) return;
+            
+            await fetch(`/api/admin/question/${id}`, { method: 'DELETE' });
+            await loadQuestions();
+        }
+        
+        function exportQuestions() {
+            // 创建包含所有题目的JSON文件
+            const questionsData = JSON.stringify(questions, null, 2);
+            const blob = new Blob([questionsData], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `turtle_soup_questions_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+        
+        function openUserModal() {
+            document.getElementById('userForm').reset();
+            document.getElementById('userModal').classList.add('show');
+        }
+        
+        function closeUserModal() {
+            document.getElementById('userModal').classList.remove('show');
+        }
+        
+        async function createUser(e) {
+            e.preventDefault();
+            
+            const data = {
+                username: document.getElementById('newUsername').value,
+                password: document.getElementById('newPassword').value,
+                points: parseInt(document.getElementById('newPoints').value) || 100,
+                role: document.getElementById('newRole').value
+            };
+            
+            const response = await fetch('/api/admin/user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            
+            if (response.ok) {
+                closeUserModal();
+                await loadUsers();
+            } else {
+                const error = await response.json();
+                alert(error.error || '创建失败');
+            }
+        }
+        
+        async function updateUserPoints(userId, points) {
+            await fetch(`/api/admin/user/${userId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ points: parseInt(points) })
+            });
+        }
+        
+        async function updateUserRole(userId, role) {
+            await fetch(`/api/admin/user/${userId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ role: role })
+            });
+        }
+        
+        async function deleteUser(userId) {
+            if (!confirm('确定要删除这个用户吗？')) return;
+            
+            const response = await fetch(`/api/admin/user/${userId}`, { method: 'DELETE' });
+            if (response.ok) {
+                await loadUsers();
+            } else {
+                const error = await response.json();
+                alert(error.error || '删除失败');
+            }
+        }
+        
+        function changePassword(userId) {
+            document.getElementById('userIdForPassword').value = userId;
+            document.getElementById('passwordForm').reset();
+            document.getElementById('passwordModal').classList.add('show');
+        }
+        
+        function closePasswordModal() {
+            document.getElementById('passwordModal').classList.remove('show');
+        }
+        
+        async function changeUserPassword(e) {
+            e.preventDefault();
+            
+            const userId = document.getElementById('userIdForPassword').value;
+            const newPassword = document.getElementById('newUserPassword').value;
+            const confirmPassword = document.getElementById('confirmNewPassword').value;
+            
+            if (newPassword !== confirmPassword) {
+                alert('两次输入的密码不一致');
+                return;
+            }
+            
+            const response = await fetch(`/api/admin/user/${userId}/password`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password: newPassword })
+            });
+            
+            if (response.ok) {
+                closePasswordModal();
+                alert('密码修改成功');
+            } else {
+                const error = await response.json();
+                alert(error.error || '修改失败');
+            }
+        }
+        
+        async function exportDatabase() {
+            const response = await fetch('/api/admin/database/export');
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'turtlesoup.db';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            } else {
+                const error = await response.json();
+                alert(error.error || '导出失败');
+            }
+        }
+        
+        async function importDatabase() {
+            const fileInput = document.getElementById('dbFileInput');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('请选择要导入的数据库文件');
+                return;
+            }
+            
+            if (!file.name.endsWith('.db')) {
+                alert('请选择.db文件');
+                return;
+            }
+            
+            if (!confirm('确定要导入并覆盖当前数据库吗？此操作不可恢复！')) {
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('db_file', file);
+            
+            const response = await fetch('/api/admin/database/import', {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (response.ok) {
+                alert('数据库导入成功');
+                fileInput.value = '';
+                // 刷新页面以加载新数据
+                location.reload();
+            } else {
+                const error = await response.json();
+                alert(error.error || '导入失败');
+            }
+        }
+        
+        init();
+    </script>
+</body>
+</html>
