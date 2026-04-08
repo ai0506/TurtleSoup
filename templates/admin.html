@@ -452,8 +452,18 @@
         }
         
         async function loadQuestions() {
+            // 获取所有题目及其完整信息
             const response = await fetch('/api/admin/questions');
-            questions = await response.json();
+            const questionsList = await response.json();
+            
+            // 对每个题目获取完整信息（包含评分点）
+            questions = [];
+            for (const q of questionsList) {
+                const detailResponse = await fetch(`/api/admin/question/${q.id}`);
+                const fullQuestion = await detailResponse.json();
+                questions.push(fullQuestion);
+            }
+            
             renderQuestions();
         }
         
@@ -487,9 +497,9 @@
                         </div>
                     </div>
                     <div class="card-body">
-                        <p><strong>汤面:</strong> ${q.surface}</p>
-                        <p><strong>汤底:</strong> ${q.bottom}</p>
-                        <p><strong>评分点:</strong> ${q.points_count} 个</p>
+                        <p><strong>汤面:</strong> ${q.surface.length > 100 ? q.surface.substring(0, 100) + '...' : q.surface}</p>
+                        <p><strong>汤底:</strong> ${q.bottom.length > 100 ? q.bottom.substring(0, 100) + '...' : q.bottom}</p>
+                        <p><strong>评分点:</strong> ${q.points ? q.points.length : 0} 个</p>
                     </div>
                     <div class="card-actions">
                         <button class="btn btn-primary" onclick="editQuestion(${q.id})">编辑</button>
