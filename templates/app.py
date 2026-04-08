@@ -314,10 +314,17 @@ def admin_get_question(question_id):
 def admin_create_question():
     data = request.get_json()
     
-    if Question.get(data['id']):
-        return jsonify({'error': '题目ID已存在'}), 400
+    # 自动生成题目ID
+    import sqlite3
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT MAX(id) FROM questions")
+    max_id = cursor.fetchone()[0]
+    conn.close()
     
-    Question.create(data['id'], data['title'], data['surface'], data['bottom'], data['points'], data.get('difficulty', '中等'))
+    new_id = max_id + 1 if max_id else 1
+    
+    Question.create(new_id, data['title'], data['surface'], data['bottom'], data['points'], data.get('difficulty', '中等'))
     return jsonify({'success': True})
 
 @app.route('/api/admin/question/<int:question_id>', methods=['PUT'])
@@ -325,14 +332,8 @@ def admin_create_question():
 def admin_update_question(question_id):
     data = request.get_json()
     
-    if data['id'] != question_id and Question.get(data['id']):
-        return jsonify({'error': '新题目ID已存在'}), 400
-    
-    if data['id'] != question_id:
-        Question.delete(question_id)
-        Question.create(data['id'], data['title'], data['surface'], data['bottom'], data['points'], data.get('difficulty', '中等'))
-    else:
-        Question.update(question_id, data['title'], data['surface'], data['bottom'], data['points'], data.get('difficulty', '中等'))
+    # 忽略传入的id，直接使用路径中的question_id
+    Question.update(question_id, data['title'], data['surface'], data['bottom'], data['points'], data.get('difficulty', '中等'))
     
     return jsonify({'success': True})
 
