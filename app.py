@@ -290,6 +290,7 @@ def admin_get_questions():
         'surface': q['surface'][:100] + '...' if len(q['surface']) > 100 else q['surface'],
         'bottom': q['bottom'][:100] + '...' if len(q['bottom']) > 100 else q['bottom'],
         'points_count': len(json.loads(q['points_json'])),
+        'points': json.loads(q['points_json']),
         'difficulty': q.get('difficulty', '中等')
     } for q in questions])
 
