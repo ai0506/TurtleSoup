@@ -5,7 +5,7 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for, f
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from functools import wraps
 from config import Config
-from models import init_db, load_questions_from_json, User, Question, Session, Message
+from models import init_db, load_questions_from_json, User, Question, Session, Message, get_db_connection
 import ai_service
 import os
 
@@ -198,9 +198,19 @@ def send_message():
     
     question = Question.get(session['question_id'])
     points_data = json.loads(question['points_json'])
+    examples_data = json.loads(question.get('examples_json', '[]'))
     
     messages = Message.get_by_session(session_id)
     known_facts = '\n'.join([m['summary'] for m in messages if m['summary']])
+    
+    # 获取最近的3条消息
+    recent_messages = messages[-3:]
+    recent_messages_list = []
+    for msg in recent_messages:
+        recent_messages_list.append({
+            'role': msg['role'],
+            'content': msg['content']
+        })
     
     Message.create(session_id, 'user', content)
     
@@ -226,8 +236,8 @@ def send_message():
             ai_response += f"\n\n完整汤底：\n{question['bottom']}"
     
     elif is_hint:
-        # 调用提示接口
-        result = ai_service.give_hint(question['surface'], question['bottom'], known_facts)
+        # 调用提示接口，传递用户的具体问题
+        result = ai_service.give_hint(question['surface'], question['bottom'], known_facts, recent_messages_list, content)
         ai_response = result['hint']
         summary = result['summary']
         response_type = 'hint'
@@ -250,15 +260,15 @@ def send_message():
                 ai_response += f"\n\n完整汤底：\n{question['bottom']}"
         
         elif classification == 'hint':
-            # 调用提示接口
-            result = ai_service.give_hint(question['surface'], question['bottom'], known_facts)
+            # 调用提示接口，传递用户的具体问题
+            result = ai_service.give_hint(question['surface'], question['bottom'], known_facts, recent_messages_list, content)
             ai_response = result['hint']
             summary = result['summary']
             response_type = 'hint'
         
         else:
             # 3. 否则视为普通问题，调用回答接口
-            result = ai_service.answer_question(content, question['surface'], question['bottom'], known_facts)
+            result = ai_service.answer_question(content, question['surface'], question['bottom'], known_facts, examples_data)
             ai_response = result['answer_type']
             summary = result['summary']
             response_type = 'answer'
@@ -291,6 +301,7 @@ def admin_get_questions():
         'bottom': q['bottom'][:100] + '...' if len(q['bottom']) > 100 else q['bottom'],
         'points_count': len(json.loads(q['points_json'])),
         'points': json.loads(q['points_json']),
+        'examples': json.loads(q.get('examples_json', '[]')),
         'difficulty': q.get('difficulty', '中等')
     } for q in questions])
 
@@ -307,6 +318,7 @@ def admin_get_question(question_id):
         'surface': question['surface'],
         'bottom': question['bottom'],
         'points': json.loads(question['points_json']),
+        'examples': json.loads(question.get('examples_json', '[]')),
         'difficulty': question.get('difficulty', '中等')
     })
 
@@ -325,7 +337,7 @@ def admin_create_question():
     
     new_id = max_id + 1 if max_id else 1
     
-    Question.create(new_id, data['title'], data['surface'], data['bottom'], data['points'], data.get('difficulty', '中等'))
+    Question.create(new_id, data['title'], data['surface'], data['bottom'], data['points'], data.get('difficulty', '中等'), data.get('examples', []))
     return jsonify({'success': True})
 
 @app.route('/api/admin/question/<int:question_id>', methods=['PUT'])
@@ -334,7 +346,7 @@ def admin_update_question(question_id):
     data = request.get_json()
     
     # 忽略传入的id，直接使用路径中的question_id
-    Question.update(question_id, data['title'], data['surface'], data['bottom'], data['points'], data.get('difficulty', '中等'))
+    Question.update(question_id, data['title'], data['surface'], data['bottom'], data['points'], data.get('difficulty', '中等'), data.get('examples', []))
     
     return jsonify({'success': True})
 
@@ -403,6 +415,45 @@ def admin_change_password(user_id):
     user.update_password(data['password'])
     return jsonify({'success': True})
 
+@app.route('/api/admin/user/<int:user_id>/logout')
+@admin_required
+def admin_logout_user(user_id):
+    # 这里可以实现登出逻辑，比如清除session等
+    return jsonify({'success': True})
+
+@app.route('/api/admin/records')
+@admin_required
+def admin_get_records():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT u.username, q.title as question_title, 
+               m1.content as question_content, m2.content as answer_content, 
+               m1.created_at
+        FROM messages m1
+        JOIN messages m2 ON m1.session_id = m2.session_id AND m1.id + 1 = m2.id
+        JOIN sessions s ON m1.session_id = s.id
+        JOIN users u ON s.user_id = u.id
+        JOIN questions q ON s.question_id = q.id
+        WHERE m1.role = 'user' AND m2.role = 'assistant'
+        ORDER BY m1.created_at DESC
+        LIMIT 100
+    ''')
+    rows = cursor.fetchall()
+    conn.close()
+    
+    records = []
+    for row in rows:
+        records.append({
+            'username': row['username'],
+            'question_title': row['question_title'],
+            'question_content': row['question_content'],
+            'answer_content': row['answer_content'],
+            'created_at': row['created_at']
+        })
+    
+    return jsonify(records)
+
 @app.route('/api/admin/database/export')
 @admin_required
 def export_database():
@@ -449,4 +500,4 @@ if __name__ == '__main__':
     if os.path.exists(questions_json_path):
         load_questions_from_json(questions_json_path)
     
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=False)
+    app.run(debug=True)

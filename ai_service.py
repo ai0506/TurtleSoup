@@ -19,7 +19,20 @@ def call_deepseek(system_prompt, user_message):
     )
     return json.loads(response.choices[0].message.content)
 
-def answer_question(question, surface, bottom, known_facts):
+def answer_question(question, surface, bottom, known_facts, examples=None):
+    # 构建示例部分
+    examples_text = ""
+    if examples:
+        examples_text = "\n示例问题与回答：\n"
+        for i, example in enumerate(examples, 1):
+            examples_text += f"示例{i}：\n"
+            examples_text += f"问题：{example['question']}\n"
+            examples_text += f"回答：{example['answer']}\n"
+            examples_text += f"原因（你不需要输出）：{example['reason']}\n"
+            if example['summary']:
+                examples_text += f"事实总结：{example['summary']}\n"
+            examples_text += "\n"
+    
     system_prompt = f"""你是一个海龟汤游戏的主持人。你需要根据汤底回答玩家的问题。
 
 汤面（公开的故事片段）：
@@ -30,6 +43,8 @@ def answer_question(question, surface, bottom, known_facts):
 
 已知事实（玩家已经得知的信息）：
 {known_facts if known_facts else "暂无"}
+
+{examples_text}
 
 回答规则：
 1. 只能回答"是"、"否"、"与此无关"或"模糊问题"四种类型之一
@@ -52,33 +67,22 @@ def answer_question(question, surface, bottom, known_facts):
 {{
     "answer_type": "是|否|与此无关|模糊问题",
     "summary": "事实总结陈述句。如果是'是'，转换为肯定陈述；如果是'否'，转换为否定陈述（与问题相反的事实）；如果是'与此无关'或'模糊问题'，设为null"
-}}
-
-示例：
-问题："有第三者吗？"（汤底中有汤面中未提及但汤底中存在的人物，即第三者）
-返回：{{"answer_type": "是", "summary": "存在第三者。"}}
-
-问题："男孩有病吗？"（汤底中男孩没有病）
-返回：{{"answer_type": "否", "summary": "男孩没有病。"}}
-
-问题："足球是用什么做的？"
-返回：{{"answer_type": "模糊问题", "summary": null}}
-
-问题："男孩是侏儒吗？"（汤底明确提到男孩是侏儒）
-返回：{{"answer_type": "是", "summary": "男孩是侏儒。"}}
-
-问题："侏儒是一种病症吗？"（客观事实，与汤底中的侏儒特征相关）
-返回：{{"answer_type": "是", "summary": "侏儒是一种病症。"}}
-
-问题："男孩喝海龟汤吗？"（太宽泛的问题）
-返回：{{"answer_type": "模糊问题", "summary": null}}
-
-问题："男孩之前喝过海龟汤吗？"（汤底中提到之前喝过海龟汤）
-返回：{{"answer_type": "是", "summary": "男孩之前喝过海龟汤。"}}"""
+}}"""
 
     return call_deepseek(system_prompt, question)
 
-def give_hint(surface, bottom, known_facts):
+def give_hint(surface, bottom, known_facts, recent_messages=None, user_question=None):
+    # 构建最近消息部分
+    recent_messages_text = ""
+    if recent_messages and len(recent_messages) > 0:
+        recent_messages_text = "\n最近的问题和回答：\n"
+        for msg in recent_messages:
+            if msg['role'] == 'user':
+                recent_messages_text += f"用户：{msg['content']}\n"
+            elif msg['role'] == 'assistant':
+                recent_messages_text += f"主持人：{msg['content']}\n"
+        recent_messages_text += "\n"
+    
     system_prompt = f"""你是一个海龟汤游戏的主持人。玩家请求一个提示。
 
 汤面（公开的故事片段）：
@@ -90,15 +94,20 @@ def give_hint(surface, bottom, known_facts):
 已知事实（玩家已经得知的信息）：
 {known_facts if known_facts else "暂无"}
 
+{recent_messages_text}
+
 请给出一个与故事相关的提示，但不要直接泄露关键事实。
 
 你需要返回JSON格式：
 {{
     "hint": "提示内容",
     "summary": "提示的事实总结"
-}}"""
+}}
+"""
 
-    return call_deepseek(system_prompt, "请给我一个提示")
+    # 如果用户有具体问题，使用用户的问题作为提示请求
+    user_message = user_question if user_question else "请给我一个提示"
+    return call_deepseek(system_prompt, user_message)
 
 def judge_reasoning(reasoning, surface, bottom, points):
     points_desc = "\n".join([f"- ID {p['id']}: {p['text']}" + (f"（可接受表述：{', '.join(p.get('accept', []))}）" if p.get('accept') else "") for p in points])
@@ -168,7 +177,7 @@ def classify_message(content):
     输入："我觉得那个男的其实是他自己杀了自己，因为他有双重人格"
     输出：{"type": "reasoning"}
     
-    输入："能给我一个提示吗？我卡住了"
+    输入："给个提示，他自杀的原因是什么"
     输出：{"type": "hint"}
     
     输入："那个女的是他的妻子吗？"

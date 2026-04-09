@@ -32,6 +32,7 @@ def init_db():
             surface TEXT NOT NULL,
             bottom TEXT NOT NULL,
             points_json TEXT NOT NULL,
+            examples_json TEXT DEFAULT '[]',
             difficulty TEXT DEFAULT '中等',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
@@ -39,6 +40,11 @@ def init_db():
     
     try:
         cursor.execute('ALTER TABLE questions ADD COLUMN difficulty TEXT DEFAULT \'中等\'')
+    except sqlite3.OperationalError:
+        pass
+    
+    try:
+        cursor.execute('ALTER TABLE questions ADD COLUMN examples_json TEXT DEFAULT \'[]\'')
     except sqlite3.OperationalError:
         pass
     
@@ -81,13 +87,17 @@ def load_questions_from_json(json_path):
     conn = get_db_connection()
     cursor = conn.cursor()
     
+    # 先清空所有题目
+    cursor.execute("DELETE FROM questions")
+    
     with open(json_path, 'r', encoding='utf-8') as f:
         questions = json.load(f)
     
-    for q in questions:
+    # 按顺序插入题目，确保ID连续
+    for i, q in enumerate(questions, 1):
         cursor.execute(
-            "INSERT OR REPLACE INTO questions (id, title, surface, bottom, points_json, difficulty) VALUES (?, ?, ?, ?, ?, ?)",
-            (q['id'], q['title'], q['surface'], q['bottom'], json.dumps(q['points'], ensure_ascii=False), q.get('difficulty', '中等'))
+            "INSERT INTO questions (id, title, surface, bottom, points_json, examples_json, difficulty) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (i, q['title'], q['surface'], q['bottom'], json.dumps(q['points'], ensure_ascii=False), json.dumps(q.get('examples', []), ensure_ascii=False), q.get('difficulty', '中等'))
         )
     
     conn.commit()
@@ -215,13 +225,13 @@ class Question:
         return None
     
     @staticmethod
-    def create(question_id, title, surface, bottom, points, difficulty='中等'):
+    def create(question_id, title, surface, bottom, points, difficulty='中等', examples=None):
         conn = get_db_connection()
         cursor = conn.cursor()
         try:
             cursor.execute(
-                "INSERT INTO questions (id, title, surface, bottom, points_json, difficulty) VALUES (?, ?, ?, ?, ?, ?)",
-                (question_id, title, surface, bottom, json.dumps(points, ensure_ascii=False), difficulty)
+                "INSERT INTO questions (id, title, surface, bottom, points_json, examples_json, difficulty) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (question_id, title, surface, bottom, json.dumps(points, ensure_ascii=False), json.dumps(examples or [], ensure_ascii=False), difficulty)
             )
             conn.commit()
             conn.close()
@@ -231,12 +241,12 @@ class Question:
             return False
     
     @staticmethod
-    def update(question_id, title, surface, bottom, points, difficulty='中等'):
+    def update(question_id, title, surface, bottom, points, difficulty='中等', examples=None):
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(
-            "UPDATE questions SET title = ?, surface = ?, bottom = ?, points_json = ?, difficulty = ? WHERE id = ?",
-            (title, surface, bottom, json.dumps(points, ensure_ascii=False), difficulty, question_id)
+            "UPDATE questions SET title = ?, surface = ?, bottom = ?, points_json = ?, examples_json = ?, difficulty = ? WHERE id = ?",
+            (title, surface, bottom, json.dumps(points, ensure_ascii=False), json.dumps(examples or [], ensure_ascii=False), difficulty, question_id)
         )
         conn.commit()
         conn.close()
@@ -246,6 +256,24 @@ class Question:
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("DELETE FROM questions WHERE id = ?", (question_id,))
+        conn.commit()
+        
+        # 重新编号题目ID，保持连续性
+        cursor.execute("SELECT id, title, surface, bottom, points_json, examples_json, difficulty FROM questions ORDER BY id")
+        questions = cursor.fetchall()
+        
+        for i, q in enumerate(questions, 1):
+            if q['id'] != i:
+                cursor.execute(
+                    "UPDATE questions SET id = ? WHERE id = ?",
+                    (i, q['id'])
+                )
+                # 更新相关的session记录
+                cursor.execute(
+                    "UPDATE sessions SET question_id = ? WHERE question_id = ?",
+                    (i, q['id'])
+                )
+        
         conn.commit()
         conn.close()
 

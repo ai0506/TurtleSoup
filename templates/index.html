@@ -4,551 +4,517 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>海龟汤推理游戏</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            /* 亮色主题配色 */
+            --bg-body: #f4f7f6;
+            --bg-panel: #ffffff;
+            --text-main: #333333;
+            --text-muted: #777777;
+            --border-color: #e0e0e0;
+
+            --primary: #4a69bd; /* 沉稳的蓝色，用于按钮和强调 */
+            --primary-hover: #3c559b;
+
+            /* 强化后的回答类型颜色 (使用高明度、低饱和度色调，确保文字可读性) */
+            --ans-yes-bg: #d4edda;       /* 柔和绿 */
+            --ans-yes-text: #155724;
+            --ans-no-bg: #f8d7da;        /* 柔和红 */
+            --ans-no-text: #721c24;
+            --ans-irrelevant-bg: #fff3cd; /* 柔和黄 */
+            --ans-irrelevant-text: #856404;
+            --ans-vague-bg: #d1ecf1;      /* 柔和蓝 */
+            --ans-vague-text: #0c5460;
+
+            --fact-bg: #f8f9fa;
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            font-family: 'Noto Sans SC', sans-serif;
         }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: #f5f5f5;
-            min-height: 100vh;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            height: 100vh;
+            overflow: hidden;
+            font-size: 14px;
         }
+
+        /* Header 样式 */
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 15px 20px;
+            height: 60px;
+            background: var(--bg-panel);
+            border-bottom: 1px solid var(--border-color);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 0 20px;
+            z-index: 100;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
+
         .header h1 {
-            font-size: 20px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--primary);
         }
+
         .header-right {
             display: flex;
             align-items: center;
-            gap: 20px;
+            gap: 12px;
         }
-        .points-display {
-            background: rgba(255,255,255,0.2);
-            padding: 8px 15px;
+
+        .user-pill {
+            background: var(--bg-body);
+            padding: 6px 12px;
             border-radius: 20px;
+            border: 1px solid var(--border-color);
         }
-        .logout-btn {
-            background: rgba(255,255,255,0.2);
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 5px;
-            cursor: pointer;
+
+        .points-pill {
+            color: #e67e22; /* 橙色强调积分 */
+            font-weight: 700;
+        }
+
+        .nav-btn {
+            color: var(--text-main);
             text-decoration: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            transition: 0.2s;
         }
-        .logout-btn:hover {
-            background: rgba(255,255,255,0.3);
-        }
+
+        .nav-btn:hover { background: rgba(0,0,0,0.05); }
+
+        /* 主容器布局 */
         .main-container {
             display: flex;
             height: calc(100vh - 60px);
         }
+
+        /* 侧边栏：历史记录 */
         .sidebar {
-            width: 200px;
-            min-width: 180px;
-            background: white;
-            border-right: 1px solid #e0e0e0;
-            overflow-y: auto;
-            flex-shrink: 0;
+            width: 220px;
+            background: var(--bg-panel);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
         }
+
         .sidebar-header {
-            padding: 15px;
-            border-bottom: 1px solid #e0e0e0;
-            font-weight: bold;
-            color: #333;
+            padding: 15px 20px;
+            font-weight: 700;
+            color: var(--text-main);
+            border-bottom: 1px solid var(--border-color);
+            background: #fafafa;
         }
-        .history-group {
-            padding: 10px 0;
+
+        #historyList {
+            flex: 1;
+            overflow-y: auto;
         }
+
         .history-group-title {
-            padding: 8px 15px;
+            padding: 12px 20px 4px;
             font-size: 12px;
-            color: #999;
+            color: var(--text-muted);
             font-weight: 500;
         }
+
         .history-item {
-            padding: 10px 15px;
+            padding: 10px 20px;
             cursor: pointer;
-            transition: background 0.2s;
             border-left: 3px solid transparent;
             position: relative;
+            transition: 0.2s;
         }
-        .history-item:hover {
-            background: #f5f5f5;
-        }
+
+        .history-item:hover { background: var(--bg-body); }
         .history-item.active {
-            background: #e8f0fe;
-            border-left-color: #667eea;
+            background: rgba(74, 105, 189, 0.08);
+            border-left-color: var(--primary);
         }
-        .history-item-title {
-            font-size: 14px;
-            color: #333;
-            margin-bottom: 5px;
-            padding-right: 25px;
-        }
-        .history-item-time {
-            font-size: 12px;
-            color: #999;
-        }
+
+        .history-item-title { color: var(--text-main); margin-bottom: 2px; }
+        .history-item-time { font-size: 12px; color: var(--text-muted); }
+
         .history-item-delete {
             position: absolute;
             right: 10px;
             top: 50%;
             transform: translateY(-50%);
             background: #e74c3c;
-            color: white;
             border: none;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 12px;
+            color: white;
+            width: 18px;
+            height: 18px;
+            border-radius: 4px;
             display: none;
-            align-items: center;
-            justify-content: center;
+            font-size: 10px;
+            line-height: 18px;
         }
-        .history-item:hover .history-item-delete {
-            display: flex;
-        }
+
+        .history-item:hover .history-item-delete { display: block; }
+
+        /* 游戏核心区 */
         .game-area {
             flex: 1;
             display: flex;
             flex-direction: column;
-            overflow: hidden;
-            margin-right: 220px;
+            background: #fdfdfd;
         }
-        .question-selector {
-            padding: 15px 20px;
-            background: white;
-            border-bottom: 1px solid #e0e0e0;
+
+        .game-toolbar {
+            padding: 12px 20px;
+            background: var(--bg-panel);
+            border-bottom: 1px solid var(--border-color);
             display: flex;
             align-items: center;
             gap: 15px;
         }
-        .question-selector select {
-            padding: 10px 15px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 14px;
-            min-width: 200px;
-            cursor: pointer;
-        }
-        .select-question-btn {
-            padding: 10px 20px;
-            background: #667eea;
-            color: white;
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 4px;
             border: none;
-            border-radius: 5px;
             cursor: pointer;
-            transition: background 0.3s;
-        }
-        .select-question-btn:hover {
-            background: #5a6fd6;
-        }
-        .current-question {
-            font-size: 14px;
-            color: #333;
             font-weight: 500;
-        }
-        .random-btn {
-            padding: 10px 20px;
-            background: #28a745;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-        .random-btn:hover {
-            background: #218838;
-        }
-        .question-modal {
-            max-width: 700px;
-        }
-        .difficulty-section {
-            margin-bottom: 20px;
-        }
-        .difficulty-header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 10px;
-            padding-bottom: 8px;
-            border-bottom: 2px solid #e0e0e0;
-        }
-        .difficulty-badge {
-            padding: 4px 12px;
-            border-radius: 15px;
+            transition: 0.2s;
             font-size: 13px;
-            font-weight: 500;
-            color: white;
         }
-        .difficulty-badge.easy { background: #28a745; }
-        .difficulty-badge.medium { background: #ffc107; color: #333; }
-        .difficulty-badge.hard { background: #dc3545; }
-        .difficulty-badge.abstract { background: #6f42c1; }
-        .difficulty-count {
-            font-size: 12px;
-            color: #999;
+
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-outline { background: transparent; border: 1px solid var(--border-color); color: var(--text-main); }
+        .btn-outline:hover { background: var(--bg-body); border-color: #ccc; }
+
+        .current-question-tag {
+            color: var(--text-muted);
+            font-size: 13px;
         }
-        .question-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
+
+        /* 汤面展示 */
+        .surface-container {
+            padding: 15px 20px;
+            background: var(--bg-panel);
+            border-bottom: 1px solid var(--border-color);
         }
-        .question-item {
-            padding: 10px 15px;
-            background: #f8f9fa;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-size: 14px;
-        }
-        .question-item:hover {
-            background: #e8f0fe;
-            border-color: #667eea;
-        }
-        .surface-display {
-            padding: 20px;
-            background: white;
-            border-bottom: 1px solid #e0e0e0;
-        }
-        .surface-title {
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 10px;
-        }
-        .surface-content {
-            font-size: 16px;
-            line-height: 1.6;
-            color: #333;
+
+        .surface-box {
+            background: var(--bg-body);
             padding: 15px;
-            background: #f8f9fa;
             border-radius: 8px;
-            border-left: 4px solid #667eea;
+            border: 1px solid var(--border-color);
+            line-height: 1.7;
+            color: var(--text-main);
         }
+
+        /* 聊天区 */
         .chat-area {
             flex: 1;
             overflow-y: auto;
             padding: 20px;
-            background: #f8f9fa;
-        }
-        .message {
-            margin-bottom: 15px;
-            max-width: 80%;
-        }
-        .message.user {
-            margin-left: auto;
-        }
-        .message-content {
-            padding: 12px 16px;
-            border-radius: 15px;
-            line-height: 1.5;
-        }
-        .message.user .message-content {
-            background: #667eea;
-            color: white;
-            border-bottom-right-radius: 5px;
-        }
-        .message.assistant .message-content {
-            background: white;
-            color: #333;
-            border-bottom-left-radius: 5px;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-        }
-        .message.assistant.correct .message-content {
-            background: #d4edda;
-            border-color: #c3e6cb;
-        }
-        .input-area {
-            padding: 15px 20px;
-            background: white;
-            border-top: 1px solid #e0e0e0;
-        }
-        .input-container {
-            display: flex;
-            gap: 10px;
-        }
-        .input-container textarea {
-            flex: 1;
-            padding: 12px 15px;
-            border: 1px solid #ddd;
-            border-radius: 15px;
-            font-size: 14px;
-            outline: none;
-            resize: none;
-            min-height: 44px;
-            max-height: 150px;
-            line-height: 1.4;
-            font-family: inherit;
-        }
-        .input-container textarea:focus {
-            border-color: #667eea;
-        }
-        .send-btn {
-            padding: 12px 25px;
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: 25px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: background 0.3s;
-        }
-        .send-btn:hover {
-            background: #5a6fd6;
-        }
-        .send-btn:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-        .modal.show {
-            display: flex;
-        }
-        .modal-content {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            max-width: 500px;
-            width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-        .modal-title {
-            font-size: 20px;
-            margin-bottom: 20px;
-            color: #28a745;
-        }
-        .modal-title.warning {
-            color: #e74c3c;
-        }
-        .modal-body {
-            line-height: 1.8;
-            color: #333;
-        }
-        .modal-actions {
-            margin-top: 20px;
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-        }
-        .modal-close {
-            padding: 10px 20px;
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        .modal-cancel {
-            padding: 10px 20px;
-            background: #6c757d;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        .modal-confirm {
-            padding: 10px 20px;
-            background: #e74c3c;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        .record-panel {
-            position: fixed;
-            right: 0;
-            top: 60px;
-            width: 220px;
-            min-width: 200px;
-            height: calc(100vh - 60px);
-            background: white;
-            border-left: 1px solid #e0e0e0;
             display: flex;
             flex-direction: column;
-            z-index: 50;
+            gap: 15px;
+            background: #f9f9f9;
         }
+
+        .message { max-width: 80%; display: flex; flex-direction: column; }
+        .message.user { align-self: flex-end; align-items: flex-end; }
+        .message.assistant { align-self: flex-start; }
+
+        .message-content {
+            padding: 10px 15px;
+            border-radius: 8px;
+            line-height: 1.6;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .message.user .message-content {
+            background: var(--primary);
+            color: white;
+            border-bottom-right-radius: 2px;
+        }
+
+        .message.assistant .message-content {
+            background: var(--bg-panel);
+            color: var(--text-main);
+            border-bottom-left-radius: 2px;
+            border: 1px solid var(--border-color);
+        }
+
+        .message.correct .message-content {
+            border: 2px solid #2ecc71;
+            background: #d4edda;
+            color: #155724;
+        }
+
+        /* 输入区 */
+        .input-area {
+            padding: 15px 20px;
+            background: var(--bg-panel);
+            border-top: 1px solid var(--border-color);
+        }
+
+        .input-wrap {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+        }
+
+        .input-wrap textarea {
+            flex: 1;
+            background: var(--bg-body);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 10px 15px;
+            outline: none;
+            resize: none;
+            max-height: 100px;
+            border-radius: 4px;
+            transition: 0.2s;
+        }
+
+        .input-wrap textarea:focus {
+            border-color: var(--primary);
+            background: var(--bg-panel);
+        }
+
+        /* 右侧面板：记录与事实 */
+        .record-panel {
+            width: 240px;
+            background: var(--bg-panel);
+            border-left: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+        }
+
         .record-section {
             flex: 1;
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            border-bottom: 1px solid var(--border-color);
         }
-        .record-section-header {
+
+        .record-title {
             padding: 12px 15px;
-            background: #f8f9fa;
-            border-bottom: 1px solid #e0e0e0;
-            font-weight: bold;
-            font-size: 14px;
-            color: #333;
+            font-weight: 700;
+            color: var(--text-main);
+            background: #fafafa;
+            border-bottom: 1px solid var(--border-color);
         }
-        .record-section-content {
-            flex: 1;
-            overflow-y: auto;
+
+        .record-content { flex: 1; overflow-y: auto; padding: 10px; }
+
+        /* 重点修改：强化 Q&A 卡片的颜色提示 */
+        .qa-card {
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            margin-bottom: 8px;
+            line-height: 1.5;
+            border: 1px solid rgba(0,0,0,0.05);
+            /* 默认样式 */
+            background: var(--bg-body);
+            color: var(--text-main);
+        }
+
+        /* 颜色占满整个背景 */
+        .qa-card.answer-yes {
+            background-color: var(--ans-yes-bg);
+            color: var(--ans-yes-text);
+            border-color: rgba(0,0,0,0.03);
+            font-weight: 500;
+        }
+        .qa-card.answer-no {
+            background-color: var(--ans-no-bg);
+            color: var(--ans-no-text);
+            border-color: rgba(0,0,0,0.03);
+        }
+        .qa-card.answer-irrelevant {
+            background-color: var(--ans-irrelevant-bg);
+            color: var(--ans-irrelevant-text);
+            border-color: rgba(0,0,0,0.03);
+        }
+        .qa-card.answer-vague {
+            background-color: var(--ans-vague-bg);
+            color: var(--ans-vague-text);
+            border-color: rgba(0,0,0,0.03);
+        }
+
+        .fact-card {
+            padding: 10px 12px;
+            background: var(--fact-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 13px;
+            margin-bottom: 6px;
+            color: var(--text-main);
+            line-height: 1.5;
+        }
+
+        /* 模态框样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(2px);
+        }
+        .modal.show { display: flex; }
+
+        .modal-content {
+            background: var(--bg-panel);
+            padding: 25px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+        }
+
+        .modal-title { margin-bottom: 15px; color: var(--text-main); font-weight: 700; }
+        .modal-body { font-size: 14px; line-height: 1.7; color: var(--text-main); }
+        .modal-footer { margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px; }
+
+        .empty-hint { text-align: center; color: var(--text-muted); font-size: 13px; padding-top: 20px; }
+
+        /* 选题弹窗特别样式 */
+        .question-item-card {
             padding: 10px;
+            background: var(--bg-body);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: 0.2s;
         }
-        .qa-item {
-            padding: 10px 12px;
-            margin-bottom: 8px;
-            border-radius: 6px;
-            font-size: 13px;
-            line-height: 1.4;
+        .question-item-card:hover {
+            border-color: var(--primary);
+            background: rgba(74, 105, 189, 0.05);
         }
-        .qa-item.answer-yes {
-            background: #d4edda;
-            border-left: 3px solid #28a745;
-        }
-        .qa-item.answer-no {
-            background: #f8d7da;
-            border-left: 3px solid #dc3545;
-        }
-        .qa-item.answer-irrelevant {
-            background: #fff3cd;
-            border-left: 3px solid #ffc107;
-        }
-        .qa-item.answer-vague {
-            background: #cce5ff;
-            border-left: 3px solid #007bff;
-        }
-        .fact-item {
-            padding: 10px 12px;
-            margin-bottom: 8px;
-            background: #f8f9fa;
-            border-radius: 6px;
-            font-size: 13px;
-            line-height: 1.4;
-            color: #333;
-            border-left: 3px solid #667eea;
-        }
-        .empty-hint {
-            padding: 20px;
-            text-align: center;
-            color: #999;
-            font-size: 13px;
-        }
+
+        /* 滚动条美化 */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #aaa; }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>🐢 海龟汤推理游戏</h1>
+    <header class="header">
+        <h1>海龟汤推理游戏</h1>
         <div class="header-right">
-            <a href="/intro" class="logout-btn">游戏介绍</a>
-            <div class="points-display">积分: <span id="pointsDisplay">0</span></div>
-            <a href="/logout" class="logout-btn">退出登录</a>
+            <div class="user-pill">
+                <span id="usernameDisplay">加载中...</span>
+                <span class="points-pill"> | 积分: <span id="pointsDisplay">0</span></span>
+            </div>
+            <a href="/intro" class="nav-btn">游戏介绍</a>
+            <a href="/logout" class="nav-btn" style="color: #e74c3c; font-weight:500;">退出登录</a>
         </div>
-    </div>
-    
+    </header>
+
     <div class="main-container">
-        <div class="sidebar">
+        <aside class="sidebar">
             <div class="sidebar-header">历史记录</div>
             <div id="historyList"></div>
-        </div>
-        
-        <div class="game-area">
-            <div class="question-selector">
-                <button class="select-question-btn" id="selectQuestionBtn">选择题目</button>
-                <span class="current-question" id="currentQuestion">请选择一道题目开始游戏</span>
-                <button class="random-btn" id="randomBtn">随机换题</button>
+        </aside>
+
+        <main class="game-area">
+            <div class="game-toolbar">
+                <button class="btn btn-primary" id="selectQuestionBtn">选择题目</button>
+                <button class="btn btn-outline" id="randomBtn">随机换题</button>
+                <span class="current-question-tag" id="currentQuestion">请选择一道题目开始游戏</span>
             </div>
-            
-            <div class="surface-display">
-                <div class="surface-title">汤面（故事片段）</div>
-                <div class="surface-content" id="surfaceContent">请选择一道题目开始游戏</div>
-            </div>
-            
-            <div class="chat-area" id="chatArea"></div>
-            
-            <div class="input-area">
-                <div class="input-container">
-                    <textarea id="messageInput" placeholder="输入问题提问，或提到'提示'/'推理'触发对应功能" rows="1"></textarea>
-                    <button class="send-btn" id="sendBtn">发送</button>
+
+            <div class="surface-container">
+                <div class="surface-box" id="surfaceContent">
+                    请选择一道题目开始游戏。
                 </div>
             </div>
-        </div>
-    </div>
-    
-    <div class="record-panel">
-        <div class="record-section">
-            <div class="record-section-header">问答记录</div>
-            <div class="record-section-content" id="qaList">
-                <div class="empty-hint">暂无问答记录</div>
+
+            <div class="chat-area" id="chatArea">
+                <div class="empty-hint">等待提问...</div>
             </div>
-        </div>
-        <div class="record-section">
-            <div class="record-section-header">事实总结</div>
-            <div class="record-section-content" id="factsList">
-                <div class="empty-hint">暂无已知事实</div>
+
+            <div class="input-area">
+                <div class="input-wrap">
+                    <textarea id="messageInput" placeholder="输入问题提问，或提到'提示'/'推理'触发对应功能" rows="1"></textarea>
+                    <button class="btn btn-primary" id="sendBtn" style="padding: 10px 20px; align-self: flex-end;">发送</button>
+                </div>
             </div>
-        </div>
+        </main>
+
+        <aside class="record-panel">
+            <div class="record-section">
+                <div class="record-title">问答记录</div>
+                <div class="record-content" id="qaList">
+                    <div class="empty-hint">暂无问答记录</div>
+                </div>
+            </div>
+            <div class="record-section">
+                <div class="record-title">事实总结</div>
+                <div class="record-content" id="factsList">
+                    <div class="empty-hint">暂无已知事实</div>
+                </div>
+            </div>
+        </aside>
     </div>
-    
+
     <div class="modal" id="successModal">
-        <div class="modal-content">
-            <h2 class="modal-title">🎉 恭喜！推理正确！</h2>
+        <div class="modal-content" style="border-top: 4px solid #2ecc71;">
+            <h2 class="modal-title" style="color: #2ecc71;">🎉 恭喜！推理正确！</h2>
             <div class="modal-body" id="successModalBody"></div>
-            <div class="modal-actions">
-                <button class="modal-close" id="successModalClose">关闭</button>
+            <div class="modal-footer">
+                <button class="btn btn-primary" id="successModalClose">关闭</button>
             </div>
         </div>
     </div>
-    
+
     <div class="modal" id="deleteModal">
         <div class="modal-content">
-            <h2 class="modal-title warning">确认删除</h2>
+            <h2 class="modal-title" style="color: #e74c3c;">确认删除</h2>
             <div class="modal-body">确定要删除这条聊天记录吗？删除后无法恢复。</div>
-            <div class="modal-actions">
-                <button class="modal-cancel" id="deleteCancel">取消</button>
-                <button class="modal-confirm" id="deleteConfirm">删除</button>
+            <div class="modal-footer">
+                <button class="btn btn-outline" id="deleteCancel">取消</button>
+                <button class="btn btn-primary" style="background: #e74c3c;" id="deleteConfirm">删除</button>
             </div>
         </div>
     </div>
-    
+
     <div class="modal" id="questionModal">
-        <div class="modal-content question-modal">
+        <div class="modal-content" style="max-width: 600px;">
             <h2 class="modal-title">选择题目</h2>
-            <div class="modal-body" id="questionModalBody"></div>
-            <div class="modal-actions">
-                <button class="modal-close" id="questionModalClose">关闭</button>
+            <div class="modal-body" id="questionModalBody" style="max-height: 60vh; overflow-y: auto; padding-right: 5px;"></div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" id="questionModalClose">取消</button>
             </div>
         </div>
     </div>
-    
+
     <script>
         let currentSessionId = null;
         let currentQuestionId = null;
         let messageRecords = [];
         let pendingDeleteSessionId = null;
-        let sessionEnded = false; // 标记会话是否已结束
-        
+        let sessionEnded = false;
+        let questions = [];
+
         async function init() {
             await loadUserInfo();
             await loadQuestions();
             await loadHistory();
-            
+            startAutoRefresh();
+
             document.getElementById('sendBtn').addEventListener('click', sendMessage);
             document.getElementById('messageInput').addEventListener('keypress', function(e) {
                 if (e.key === 'Enter' && !e.shiftKey) {
@@ -564,224 +530,188 @@
             document.getElementById('deleteConfirm').addEventListener('click', confirmDelete);
             document.getElementById('questionModalClose').addEventListener('click', closeQuestionModal);
         }
-        
+
         function autoResize() {
             const textarea = document.getElementById('messageInput');
             textarea.style.height = 'auto';
-            textarea.style.height = Math.min(textarea.scrollHeight, 150) + 'px';
+            textarea.style.height = Math.min(textarea.scrollHeight, 100) + 'px';
         }
+
         async function loadUserInfo() {
-            const response = await fetch('/api/user/info');
-            const data = await response.json();
-            document.getElementById('pointsDisplay').textContent = data.points;
+            try {
+                const response = await fetch('/api/user/info');
+                const data = await response.json();
+                document.getElementById('pointsDisplay').textContent = data.points;
+                document.getElementById('usernameDisplay').textContent = data.username;
+            } catch (e) { console.error("加载用户信息失败"); }
         }
-        
+
+        function startAutoRefresh() {
+            setInterval(loadUserInfo, 10000);
+        }
+
         async function loadQuestions() {
-            const response = await fetch('/api/questions');
-            questions = await response.json();
+            try {
+                const response = await fetch('/api/questions');
+                questions = await response.json();
+            } catch (e) { console.error("加载题目失败"); }
         }
-        
+
         function openQuestionModal() {
             const modalBody = document.getElementById('questionModalBody');
             const difficultyOrder = ['简单', '中等', '困难', '抽象'];
-            const difficultyClasses = {
-                '简单': 'easy',
-                '中等': 'medium',
-                '困难': 'hard',
-                '抽象': 'abstract'
-            };
-            
+            // 亮色主题下的难度颜色
+            const difficultyColors = { '简单': '#27ae60', '中等': '#2980b9', '困难': '#c0392b', '抽象': '#8e44ad' };
+
             const grouped = {};
             questions.forEach(q => {
                 const diff = q.difficulty || '中等';
                 if (!grouped[diff]) grouped[diff] = [];
                 grouped[diff].push(q);
             });
-            
+
             modalBody.innerHTML = '';
-            
             difficultyOrder.forEach(diff => {
                 if (!grouped[diff] || grouped[diff].length === 0) return;
-                
+
                 const section = document.createElement('div');
-                section.className = 'difficulty-section';
+                section.style.marginBottom = '15px';
                 section.innerHTML = `
-                    <div class="difficulty-header">
-                        <span class="difficulty-badge ${difficultyClasses[diff]}">${diff}</span>
-                        <span class="difficulty-count">(${grouped[diff].length}题)</span>
+                    <div style="color:${difficultyColors[diff]}; font-weight:700; margin-bottom:8px; border-bottom:1px solid #eee; padding-bottom:3px; font-size:13px;">
+                        ${diff} (${grouped[diff].length}题)
                     </div>
-                    <div class="question-list"></div>
+                    <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap:8px;"></div>
                 `;
-                
-                const list = section.querySelector('.question-list');
+
+                const list = section.querySelector('div:last-child');
                 grouped[diff].forEach(q => {
                     const item = document.createElement('div');
-                    item.className = 'question-item';
+                    item.className = 'question-item-card';
+                    item.style.fontSize = '13px';
                     item.textContent = q.title;
                     item.addEventListener('click', () => selectQuestion(q.id));
                     list.appendChild(item);
                 });
-                
                 modalBody.appendChild(section);
             });
-            
             document.getElementById('questionModal').classList.add('show');
         }
-        
-        function closeQuestionModal() {
-            document.getElementById('questionModal').classList.remove('show');
-        }
-        
+
+        function closeQuestionModal() { document.getElementById('questionModal').classList.remove('show'); }
+
         async function selectQuestion(questionId) {
             closeQuestionModal();
             clearHistorySelection();
-            
             currentQuestionId = questionId;
             currentSessionId = null;
-            sessionEnded = false; // 重置会话状态
-            
-            const response = await fetch(`/api/question/${questionId}`);
-            const question = await response.json();
-            document.getElementById('surfaceContent').textContent = question.surface;
-            document.getElementById('currentQuestion').textContent = question.title;
-            
-            document.getElementById('chatArea').innerHTML = '';
-            document.getElementById('qaList').innerHTML = '<div class="empty-hint">暂无问答记录</div>';
-            document.getElementById('factsList').innerHTML = '<div class="empty-hint">暂无已知事实</div>';
-            messageRecords = [];
-            
-            // 启用输入框和发送按钮
-            document.getElementById('messageInput').disabled = false;
-            document.getElementById('sendBtn').disabled = false;
+            sessionEnded = false;
+
+            try {
+                const response = await fetch(`/api/question/${questionId}`);
+                const question = await response.json();
+                document.getElementById('surfaceContent').textContent = question.surface;
+                document.getElementById('currentQuestion').textContent = question.title;
+                document.getElementById('chatArea').innerHTML = '';
+                document.getElementById('qaList').innerHTML = '<div class="empty-hint">暂无问答记录</div>';
+                document.getElementById('factsList').innerHTML = '<div class="empty-hint">暂无已知事实</div>';
+                messageRecords = [];
+
+                document.getElementById('messageInput').disabled = false;
+                document.getElementById('sendBtn').disabled = false;
+            } catch (e) { alert("加载题目详情失败"); }
         }
-        
+
         async function loadHistory() {
-            const response = await fetch('/api/sessions');
-            const groups = await response.json();
-            
-            const container = document.getElementById('historyList');
-            container.innerHTML = '';
-            
-            for (const [groupName, sessions] of Object.entries(groups)) {
-                if (sessions.length === 0) continue;
-                
-                // 在每个分组内按时间排序（最新的在前）
-                sessions.sort((a, b) => {
-                    const dateA = new Date(a.updated_at);
-                    const dateB = new Date(b.updated_at);
-                    return dateB - dateA;
-                });
-                
-                const groupDiv = document.createElement('div');
-                groupDiv.className = 'history-group';
-                groupDiv.innerHTML = `<div class="history-group-title">${groupName}</div>`;
-                
-                sessions.forEach(s => {
-                    const item = document.createElement('div');
-                    item.className = 'history-item';
-                    item.dataset.sessionId = s.id;
-                    item.dataset.questionId = s.question_id;
-                    item.innerHTML = `
-                        <div class="history-item-title">${s.title}</div>
-                        <div class="history-item-time">${s.name.split(' - ')[1] || ''}</div>
-                        <button class="history-item-delete" data-session-id="${s.id}">✕</button>
-                    `;
-                    item.addEventListener('click', (e) => {
-                        if (!e.target.classList.contains('history-item-delete')) {
-                            loadSession(s.id, s.question_id);
-                        }
+            try {
+                const response = await fetch('/api/sessions');
+                const groups = await response.json();
+                const container = document.getElementById('historyList');
+                container.innerHTML = '';
+
+                for (const [groupName, sessions] of Object.entries(groups)) {
+                    if (sessions.length === 0) continue;
+                    sessions.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+
+                    const groupDiv = document.createElement('div');
+                    groupDiv.innerHTML = `<div class="history-group-title">${groupName}</div>`;
+
+                    sessions.forEach(s => {
+                        const item = document.createElement('div');
+                        item.className = 'history-item';
+                        item.dataset.sessionId = s.id;
+                        item.innerHTML = `
+                            <div class="history-item-title">${s.title}</div>
+                            <div class="history-item-time">${s.name.split(' - ')[1] || ''}</div>
+                            <button class="history-item-delete">✕</button>
+                        `;
+                        item.addEventListener('click', (e) => {
+                            if (!e.target.classList.contains('history-item-delete')) loadSession(s.id, s.question_id);
+                        });
+                        item.querySelector('.history-item-delete').addEventListener('click', (e) => {
+                            e.stopPropagation(); showDeleteModal(s.id);
+                        });
+                        groupDiv.appendChild(item);
                     });
-                    
-                    const deleteBtn = item.querySelector('.history-item-delete');
-                    deleteBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        showDeleteModal(s.id);
-                    });
-                    
-                    groupDiv.appendChild(item);
-                });
-                
-                container.appendChild(groupDiv);
-            }
+                    container.appendChild(groupDiv);
+                }
+            } catch (e) { console.error("加载历史记录失败"); }
         }
-        
+
         function clearHistorySelection() {
-            document.querySelectorAll('.history-item').forEach(item => {
-                item.classList.remove('active');
-            });
+            document.querySelectorAll('.history-item').forEach(i => i.classList.remove('active'));
         }
-        
+
         async function randomQuestion() {
             if (questions.length === 0) return;
             const randomIndex = Math.floor(Math.random() * questions.length);
             await selectQuestion(questions[randomIndex].id);
         }
-        
+
         async function loadSession(sessionId, questionId) {
             currentQuestionId = questionId;
-            
-            const qResponse = await fetch(`/api/question/${questionId}`);
-            const question = await qResponse.json();
-            document.getElementById('surfaceContent').textContent = question.surface;
-            document.getElementById('currentQuestion').textContent = question.title;
-            
-            const response = await fetch(`/api/session/${sessionId}`);
-            const data = await response.json();
-            
-            currentSessionId = sessionId;
-            processMessages(data.messages);
-            renderMessages(data.messages);
-            
-            // 检查会话是否已结束（是否包含正确推理）
-            const hasCorrectReasoning = data.messages.some(msg => 
-                msg.role === 'assistant' && msg.content.includes('推理判定：正确')
-            );
-            
-            sessionEnded = hasCorrectReasoning;
-            
-            // 更新输入框和发送按钮状态
-            const messageInput = document.getElementById('messageInput');
-            const sendBtn = document.getElementById('sendBtn');
-            
-            if (sessionEnded) {
-                messageInput.disabled = true;
-                sendBtn.disabled = true;
-            } else {
-                messageInput.disabled = false;
-                sendBtn.disabled = false;
-            }
-            
-            document.querySelectorAll('.history-item').forEach(item => {
-                item.classList.toggle('active', parseInt(item.dataset.sessionId) === sessionId);
-            });
+            try {
+                const qResp = await fetch(`/api/question/${questionId}`);
+                const q = await qResp.json();
+                document.getElementById('surfaceContent').textContent = q.surface;
+                document.getElementById('currentQuestion').textContent = q.title;
+
+                const response = await fetch(`/api/session/${sessionId}`);
+                const data = await response.json();
+                currentSessionId = sessionId;
+                processMessages(data.messages);
+                renderMessages(data.messages);
+
+                sessionEnded = data.messages.some(m => m.role === 'assistant' && m.content.includes('推理判定：正确'));
+                document.getElementById('messageInput').disabled = sessionEnded;
+                document.getElementById('sendBtn').disabled = sessionEnded;
+
+                document.querySelectorAll('.history-item').forEach(item => {
+                    item.classList.toggle('active', parseInt(item.dataset.sessionId) === sessionId);
+                });
+            } catch (e) { alert("加载会话失败"); }
         }
-        
+
         function processMessages(messages) {
             messageRecords = [];
-            
             for (let i = 0; i < messages.length; i++) {
                 const msg = messages[i];
                 if (msg.role === 'user') {
                     const nextMsg = messages[i + 1];
                     if (nextMsg && nextMsg.role === 'assistant') {
-                        const answerType = parseAnswerType(nextMsg.content);
-                        const isHint = nextMsg.content.includes('提示：') || nextMsg.content.includes('提示:');
-                        
                         messageRecords.push({
                             question: msg.content,
                             answer: nextMsg.content,
-                            answerType: answerType,
+                            answerType: parseAnswerType(nextMsg.content),
                             summary: nextMsg.summary,
-                            isHint: isHint
+                            isHint: nextMsg.content.includes('提示')
                         });
                     }
                 }
             }
-            
             updateQAList();
             updateFactsList();
         }
-        
+
         function parseAnswerType(content) {
             const firstLine = content.split('\n')[0].trim();
             if (firstLine === '是') return 'yes';
@@ -790,206 +720,118 @@
             if (firstLine === '模糊问题') return 'vague';
             return null;
         }
-        
+
         function updateQAList() {
             const container = document.getElementById('qaList');
-            
             const qaRecords = messageRecords.filter(r => r.answerType);
-            
-            if (qaRecords.length === 0) {
-                container.innerHTML = '<div class="empty-hint">暂无问答记录</div>';
-                return;
-            }
-            
-            container.innerHTML = '';
-            
-            qaRecords.forEach(record => {
-                const div = document.createElement('div');
-                let className = 'qa-item';
-                if (record.answerType === 'yes') className += ' answer-yes';
-                else if (record.answerType === 'no') className += ' answer-no';
-                else if (record.answerType === 'irrelevant') className += ' answer-irrelevant';
-                else if (record.answerType === 'vague') className += ' answer-vague';
-                
-                div.className = className;
-                div.textContent = record.question;
-                container.appendChild(div);
-            });
+            if (qaRecords.length === 0) { container.innerHTML = '<div class="empty-hint">暂无问答记录</div>'; return; }
+
+            container.innerHTML = qaRecords.map(r => `
+                <div class="qa-card answer-${r.answerType}">${r.question}</div>
+            `).join('');
         }
-        
+
         function updateFactsList() {
             const container = document.getElementById('factsList');
-            
-            const facts = messageRecords
-                .filter(r => r.summary && (r.answerType === 'yes' || r.answerType === 'no' || r.isHint))
-                .map(r => r.summary);
-            
-            if (facts.length === 0) {
-                container.innerHTML = '<div class="empty-hint">暂无已知事实</div>';
-                return;
-            }
-            
-            container.innerHTML = '';
-            
-            facts.forEach(fact => {
-                const div = document.createElement('div');
-                div.className = 'fact-item';
-                div.textContent = fact;
-                container.appendChild(div);
-            });
+            const facts = messageRecords.filter(r => r.summary && (r.answerType === 'yes' || r.answerType === 'no' || r.isHint));
+            if (facts.length === 0) { container.innerHTML = '<div class="empty-hint">暂无已知事实</div>'; return; }
+            container.innerHTML = facts.map(r => `<div class="fact-card">${r.summary}</div>`).join('');
         }
-        
+
         function renderMessages(messages) {
             const container = document.getElementById('chatArea');
             container.innerHTML = '';
-            
-            messages.forEach(msg => {
-                addMessageToUI(msg.role, msg.content, msg.content.includes('推理判定：正确'));
-            });
-            
+            if (messages.length === 0) {
+                 container.innerHTML = '<div class="empty-hint">等待提问...</div>';
+                 return;
+            }
+            // 最早的消息在最上面，按照时间顺序渲染
+            messages.forEach(msg => addMessageToUI(msg.role, msg.content, msg.content.includes('推理判定：正确')));
+            // 滚动到底部，显示最新消息
             container.scrollTop = container.scrollHeight;
         }
-        
+
         function addMessageToUI(role, content, isCorrect = false) {
             const container = document.getElementById('chatArea');
+            // 移除 empty hint
+            const hint = container.querySelector('.empty-hint');
+            if (hint) hint.remove();
+
             const msgDiv = document.createElement('div');
             msgDiv.className = `message ${role}${isCorrect ? ' correct' : ''}`;
             msgDiv.innerHTML = `<div class="message-content">${content.replace(/\n/g, '<br>')}</div>`;
             container.appendChild(msgDiv);
             container.scrollTop = container.scrollHeight;
         }
-        
+
         async function sendMessage() {
             const input = document.getElementById('messageInput');
             const content = input.value.trim();
-            
-            if (!content || !currentQuestionId) return;
-            
-            // 检查会话是否已结束
-            if (sessionEnded) {
-                alert('该会话已结束，无法继续发送消息');
-                return;
-            }
-            
+            if (!content || !currentQuestionId || sessionEnded) return;
+
             input.value = '';
             input.style.height = 'auto';
             addMessageToUI('user', content);
-            
             document.getElementById('sendBtn').disabled = true;
-            
+
             try {
                 const response = await fetch('/api/send', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        session_id: currentSessionId,
-                        question_id: currentQuestionId,
-                        content: content
-                    })
+                    body: JSON.stringify({ session_id: currentSessionId, question_id: currentQuestionId, content: content })
                 });
-                
                 const data = await response.json();
-                
-                if (response.status === 403) {
-                    alert('积分不足！');
-                    return;
-                }
-                
-                if (data.session_id) {
-                    currentSessionId = data.session_id;
-                }
-                
+                if (response.status === 403) { alert('积分不足！'); return; }
+                if (data.session_id) currentSessionId = data.session_id;
                 document.getElementById('pointsDisplay').textContent = data.points;
-                
+
                 const isCorrect = data.type === 'reasoning' && data.response.includes('正确');
                 addMessageToUI('assistant', data.response, isCorrect);
-                
+
                 if (data.type === 'answer') {
-                    const answerType = parseAnswerType(data.response);
-                    messageRecords.push({
-                        question: content,
-                        answer: data.response,
-                        answerType: answerType,
-                        summary: data.summary,
-                        isHint: false
-                    });
-                    updateQAList();
-                    updateFactsList();
+                    messageRecords.push({ question: content, answer: data.response, answerType: parseAnswerType(data.response), summary: data.summary, isHint: false });
+                    updateQAList(); updateFactsList();
                 } else if (data.type === 'hint' && data.summary) {
-                    messageRecords.push({
-                        question: content,
-                        answer: data.response,
-                        answerType: null,
-                        summary: data.summary,
-                        isHint: true
-                    });
+                    messageRecords.push({ question: content, answer: data.response, answerType: null, summary: data.summary, isHint: true });
                     updateFactsList();
                 }
-                
+
                 if (isCorrect && data.response.includes('完整汤底')) {
                     const bottomMatch = data.response.match(/完整汤底：\n([\s\S]*)/);
                     if (bottomMatch) {
                         document.getElementById('successModalBody').textContent = bottomMatch[1];
                         document.getElementById('successModal').classList.add('show');
-                        // 标记会话已结束
                         sessionEnded = true;
-                        // 禁用输入框和发送按钮
                         document.getElementById('messageInput').disabled = true;
                         document.getElementById('sendBtn').disabled = true;
                     }
                 }
-                
                 await loadHistory();
-                
             } catch (error) {
-                console.error('发送失败:', error);
                 alert('发送失败，请重试');
-            } finally {
-                if (!sessionEnded) {
-                    document.getElementById('sendBtn').disabled = false;
-                }
+                document.getElementById('sendBtn').disabled = false;
             }
         }
-        
-        function showDeleteModal(sessionId) {
-            pendingDeleteSessionId = sessionId;
-            document.getElementById('deleteModal').classList.add('show');
-        }
-        
-        function closeDeleteModal() {
-            document.getElementById('deleteModal').classList.remove('show');
-            pendingDeleteSessionId = null;
-        }
-        
+
+        function showDeleteModal(sessionId) { pendingDeleteSessionId = sessionId; document.getElementById('deleteModal').classList.add('show'); }
+        function closeDeleteModal() { document.getElementById('deleteModal').classList.remove('show'); }
         async function confirmDelete() {
-            if (!pendingDeleteSessionId) return;
-            
             try {
-                const response = await fetch(`/api/session/${pendingDeleteSessionId}`, {
-                    method: 'DELETE'
-                });
-                
-                if (response.ok) {
-                    if (currentSessionId === pendingDeleteSessionId) {
-                        currentSessionId = null;
-                        document.getElementById('chatArea').innerHTML = '';
-                        document.getElementById('qaList').innerHTML = '<div class="empty-hint">暂无问答记录</div>';
-                        document.getElementById('factsList').innerHTML = '<div class="empty-hint">暂无已知事实</div>';
-                    }
-                    await loadHistory();
+                await fetch(`/api/session/${pendingDeleteSessionId}`, { method: 'DELETE' });
+                if (currentSessionId === pendingDeleteSessionId) {
+                    currentSessionId = null;
+                    document.getElementById('chatArea').innerHTML = '<div class="empty-hint">等待提问...</div>';
+                    document.getElementById('currentQuestion').textContent = '请选择一道题目开始游戏';
+                    document.getElementById('surfaceContent').textContent = '请选择一道题目开始游戏。';
+                    document.getElementById('qaList').innerHTML = '<div class="empty-hint">暂无问答记录</div>';
+                    document.getElementById('factsList').innerHTML = '<div class="empty-hint">暂无已知事实</div>';
                 }
-            } catch (error) {
-                console.error('删除失败:', error);
-                alert('删除失败，请重试');
-            } finally {
-                closeDeleteModal();
-            }
+                await loadHistory();
+            } catch (e) { alert("删除失败"); }
+            closeDeleteModal();
         }
-        
-        function closeSuccessModal() {
-            document.getElementById('successModal').classList.remove('show');
-        }
-        
+        function closeSuccessModal() { document.getElementById('successModal').classList.remove('show'); }
+
         init();
     </script>
 </body>

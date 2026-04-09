@@ -257,10 +257,51 @@
             border: 1px solid #ddd;
             border-radius: 3px;
         }
-        .role-select {
-            padding: 5px;
+        .examples-container {
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .example-item {
+            border: 1px solid #f0f0f0;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 10px;
+            background: #f9f9f9;
+        }
+        .example-item h4 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .example-item .form-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+        .example-item .form-row label {
+            width: 80px;
+            font-weight: 500;
+        }
+        .example-item .form-row input, .example-item .form-row textarea, .example-item .form-row select {
+            flex: 1;
+            padding: 8px;
             border: 1px solid #ddd;
             border-radius: 3px;
+        }
+        .example-item .form-row textarea {
+            min-height: 60px;
+            resize: vertical;
+        }
+        .example-item .remove-example {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            margin-top: 10px;
         }
     </style>
 </head>
@@ -277,13 +318,22 @@
         <div class="tabs">
             <button class="tab-btn active" data-tab="questions">题库管理</button>
             <button class="tab-btn" data-tab="users">用户管理</button>
+            <button class="tab-btn" data-tab="records">答题记录</button>
             <button class="tab-btn" data-tab="database">数据库管理</button>
         </div>
         
         <div id="questionsTab" class="tab-content active">
-            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+            <div style="display: flex; gap: 10px; margin-bottom: 20px; align-items: center;">
                 <button class="btn btn-primary add-btn" id="addQuestionBtn">+ 新增题目</button>
                 <button class="btn btn-success" id="exportQuestionsBtn">导出题库</button>
+                <button class="btn btn-warning" id="importQuestionsBtn">导入题库</button>
+                <div style="margin-left: auto; display: flex; gap: 10px; align-items: center;">
+                    <label style="display: flex; align-items: center; gap: 5px;">
+                        <input type="checkbox" id="selectAllQuestions">
+                        全选
+                    </label>
+                    <button class="btn btn-danger" id="batchDeleteBtn" disabled>批量删除</button>
+                </div>
             </div>
             <div class="card-grid" id="questionsGrid"></div>
         </div>
@@ -320,6 +370,30 @@
                             <input type="file" id="dbFileInput" accept=".db">
                             <button class="btn btn-danger" onclick="importDatabase()" style="margin-left: 10px;">导入并覆盖</button>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="recordsTab" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">答题记录</span>
+                </div>
+                <div class="card-body">
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>用户</th>
+                                    <th>题目</th>
+                                    <th>问题</th>
+                                    <th>回答</th>
+                                    <th>时间</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recordsTable"></tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -361,6 +435,11 @@
                     <div class="points-container" id="pointsContainer"></div>
                     <button type="button" class="add-point-btn" id="addPointBtn">+ 添加评分点</button>
                 </div>
+                <div class="form-group">
+                    <label>示例问题与回答</label>
+                    <div class="examples-container" id="examplesContainer"></div>
+                    <button type="button" class="add-point-btn" id="addExampleBtn">+ 添加示例</button>
+                </div>
                 <div class="modal-actions">
                     <button type="submit" class="btn btn-primary">保存</button>
                     <button type="button" class="btn btn-secondary" id="cancelQuestionBtn">取消</button>
@@ -400,24 +479,17 @@
         </div>
     </div>
     
-    <div class="modal" id="passwordModal">
+    <div class="modal" id="importQuestionsModal">
         <div class="modal-content">
-            <h2 class="modal-title">修改密码</h2>
-            <form id="passwordForm">
-                <input type="hidden" id="userIdForPassword">
-                <div class="form-group">
-                    <label>新密码</label>
-                    <input type="password" id="newUserPassword" required>
-                </div>
-                <div class="form-group">
-                    <label>确认新密码</label>
-                    <input type="password" id="confirmNewPassword" required>
-                </div>
-                <div class="modal-actions">
-                    <button type="submit" class="btn btn-primary">保存</button>
-                    <button type="button" class="btn btn-secondary" id="cancelPasswordBtn">取消</button>
-                </div>
-            </form>
+            <h2 class="modal-title">导入题库</h2>
+            <div style="margin: 20px 0;">
+                <label style="display: block; margin-bottom: 10px;">选择题库JSON文件：</label>
+                <input type="file" id="questionsFileInput" accept=".json">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="importQuestions()">导入</button>
+                <button class="btn btn-secondary" onclick="closeImportQuestionsModal()">取消</button>
+            </div>
         </div>
     </div>
     
@@ -426,29 +498,128 @@
         let users = [];
         let editingQuestionId = null;
         
+        // 事件处理函数
+        function checkboxChangeHandler() {
+            updateBatchDeleteButton();
+            updateSelectAllStatus();
+        }
+        
         async function init() {
-            await loadQuestions();
-            await loadUsers();
-            
+            try {
+                // 先绑定事件监听器，确保DOM元素存在
+                bindEventListeners();
+                
+                // 然后加载数据
+                await loadQuestions();
+                await loadUsers();
+                await loadRecords();
+            } catch (error) {
+                console.error('初始化失败:', error);
+            }
+        }
+        
+        function bindEventListeners() {
+            // 标签页切换
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
                     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
                     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
                     btn.classList.add('active');
-                    document.getElementById(btn.dataset.tab + 'Tab').classList.add('active');
+                    const tabId = btn.dataset.tab + 'Tab';
+                    document.getElementById(tabId).classList.add('active');
+                    if (tabId === 'recordsTab') {
+                        loadRecords();
+                    }
                 });
             });
             
-            document.getElementById('addQuestionBtn').addEventListener('click', () => openQuestionModal());
-            document.getElementById('addUserBtn').addEventListener('click', () => openUserModal());
-            document.getElementById('exportQuestionsBtn').addEventListener('click', exportQuestions);
-            document.getElementById('questionForm').addEventListener('submit', saveQuestion);
-            document.getElementById('userForm').addEventListener('submit', createUser);
-            document.getElementById('passwordForm').addEventListener('submit', changeUserPassword);
-            document.getElementById('cancelQuestionBtn').addEventListener('click', closeQuestionModal);
-            document.getElementById('cancelUserBtn').addEventListener('click', closeUserModal);
-            document.getElementById('cancelPasswordBtn').addEventListener('click', closePasswordModal);
-            document.getElementById('addPointBtn').addEventListener('click', addPointRow);
+            // 绑定按钮事件
+            const buttons = [
+                { id: 'addQuestionBtn', handler: openQuestionModal },
+                { id: 'addUserBtn', handler: openUserModal },
+                { id: 'exportQuestionsBtn', handler: exportQuestions },
+                { id: 'importQuestionsBtn', handler: openImportQuestionsModal },
+                { id: 'questionForm', handler: saveQuestion, event: 'submit' },
+                { id: 'userForm', handler: createUser, event: 'submit' },
+                { id: 'passwordForm', handler: changeUserPassword, event: 'submit' },
+                { id: 'cancelQuestionBtn', handler: closeQuestionModal },
+                { id: 'cancelUserBtn', handler: closeUserModal },
+                { id: 'cancelPasswordBtn', handler: closePasswordModal },
+                { id: 'addPointBtn', handler: addPointRow },
+                { id: 'addExampleBtn', handler: addExampleRow },
+                { id: 'selectAllQuestions', handler: toggleSelectAll, event: 'change' },
+                { id: 'batchDeleteBtn', handler: batchDeleteQuestions }
+            ];
+            
+            buttons.forEach(btn => {
+                const element = document.getElementById(btn.id);
+                if (element) {
+                    const event = btn.event || 'click';
+                    element.addEventListener(event, btn.handler);
+                }
+            });
+        }
+        
+        function bindQuestionCheckboxes() {
+            document.querySelectorAll('.question-checkbox').forEach(checkbox => {
+                // 先移除可能存在的事件监听器，避免重复绑定
+                checkbox.removeEventListener('change', checkboxChangeHandler);
+                // 然后添加新的事件监听器
+                checkbox.addEventListener('change', checkboxChangeHandler);
+            });
+        }
+        
+        function updateBatchDeleteButton() {
+            const checkedBoxes = document.querySelectorAll('.question-checkbox:checked');
+            const batchDeleteBtn = document.getElementById('batchDeleteBtn');
+            if (batchDeleteBtn) {
+                batchDeleteBtn.disabled = checkedBoxes.length === 0;
+            }
+        }
+        
+        function updateSelectAllStatus() {
+            const allCheckboxes = document.querySelectorAll('.question-checkbox');
+            const checkedBoxes = document.querySelectorAll('.question-checkbox:checked');
+            const selectAll = document.getElementById('selectAllQuestions');
+            
+            if (selectAll) {
+                // 移除第三种状态，只使用选中或未选中
+                selectAll.indeterminate = false;
+                
+                if (allCheckboxes.length === 0) {
+                    selectAll.checked = false;
+                } else if (checkedBoxes.length === allCheckboxes.length) {
+                    selectAll.checked = true;
+                } else {
+                    selectAll.checked = false;
+                }
+            }
+        }
+        
+        function toggleSelectAll() {
+            const selectAll = document.getElementById('selectAllQuestions');
+            const allCheckboxes = document.querySelectorAll('.question-checkbox');
+            
+            allCheckboxes.forEach(checkbox => {
+                checkbox.checked = selectAll.checked;
+            });
+            
+            updateBatchDeleteButton();
+        }
+        
+        async function batchDeleteQuestions() {
+            const checkedBoxes = document.querySelectorAll('.question-checkbox:checked');
+            const questionIds = Array.from(checkedBoxes).map(box => box.dataset.id).sort((a, b) => parseInt(b) - parseInt(a)); // 从大到小排序，避免ID重新编号影响
+            
+            if (questionIds.length === 0) return;
+            
+            if (!confirm(`确定要删除选中的 ${questionIds.length} 道题目吗？`)) return;
+            
+            for (const id of questionIds) {
+                await fetch(`/api/admin/question/${id}`, { method: 'DELETE' });
+            }
+            
+            await loadQuestions();
         }
         
         async function loadQuestions() {
@@ -490,7 +661,10 @@
                 card.className = 'card';
                 card.innerHTML = `
                     <div class="card-header">
-                        <span class="card-title">${q.title}</span>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <input type="checkbox" class="question-checkbox" data-id="${q.id}">
+                            <span class="card-title">${q.title}</span>
+                        </div>
                         <div>
                             <span class="badge" style="background: ${diffColor}; color: white; margin-right: 5px;">${q.difficulty || '中等'}</span>
                             <span class="badge">ID: ${q.id}</span>
@@ -508,6 +682,9 @@
                 `;
                 grid.appendChild(card);
             });
+            
+            // 绑定复选框事件
+            bindQuestionCheckboxes();
         }
         
         function renderUsers() {
@@ -552,6 +729,12 @@
             container.innerHTML = '';
             q.points.forEach((p, index) => addPointRow(p));
             
+            const examplesContainer = document.getElementById('examplesContainer');
+            examplesContainer.innerHTML = '';
+            if (q.examples) {
+                q.examples.forEach((example) => addExampleRow(example));
+            }
+            
             document.getElementById('questionModal').classList.add('show');
         }
         
@@ -560,6 +743,7 @@
             document.getElementById('questionForm').reset();
             document.getElementById('questionModalTitle').textContent = '新增题目';
             document.getElementById('pointsContainer').innerHTML = '';
+            document.getElementById('examplesContainer').innerHTML = '';
             
             // 自动生成题目ID
             const nextId = questions.length > 0 ? Math.max(...questions.map(q => q.id)) + 1 : 1;
@@ -586,6 +770,55 @@
             container.appendChild(div);
         }
         
+        function addExampleRow(example = null) {
+            const container = document.getElementById('examplesContainer');
+            const div = document.createElement('div');
+            div.className = 'example-item';
+            div.innerHTML = `
+                <h4>示例 ${container.children.length + 1}</h4>
+                <div class="form-row">
+                    <label>问题：</label>
+                    <input type="text" placeholder="请输入问题" value="${example ? example.question : ''}" class="example-question">
+                </div>
+                <div class="form-row">
+                    <label>回答：</label>
+                    <select class="example-answer">
+                        <option value="是" ${example && example.answer === '是' ? 'selected' : ''}>是</option>
+                        <option value="否" ${example && example.answer === '否' ? 'selected' : ''}>否</option>
+                        <option value="与此无关" ${example && example.answer === '与此无关' ? 'selected' : ''}>与此无关</option>
+                        <option value="模糊问题" ${example && example.answer === '模糊问题' ? 'selected' : ''}>模糊问题</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <label>原因：</label>
+                    <textarea placeholder="请输入回答原因" class="example-reason">${example ? example.reason : ''}</textarea>
+                </div>
+                <div class="form-row">
+                    <label>总结：</label>
+                    <input type="text" placeholder="请输入事实总结（可选）" value="${example ? example.summary : ''}" class="example-summary">
+                </div>
+                <button type="button" class="remove-example" onclick="removeExample(this)">✕ 删除示例</button>
+            `;
+            container.appendChild(div);
+            updateExampleNumbers();
+        }
+        
+        function removeExample(button) {
+            button.parentElement.remove();
+            updateExampleNumbers();
+        }
+        
+        function updateExampleNumbers() {
+            const container = document.getElementById('examplesContainer');
+            const examples = container.querySelectorAll('.example-item');
+            examples.forEach((example, index) => {
+                const h4 = example.querySelector('h4');
+                if (h4) {
+                    h4.textContent = `示例 ${index + 1}`;
+                }
+            });
+        }
+        
         async function saveQuestion(e) {
             e.preventDefault();
             
@@ -603,13 +836,31 @@
                 }
             });
             
+            const examples = [];
+            document.querySelectorAll('#examplesContainer .example-item').forEach((item) => {
+                const question = item.querySelector('.example-question').value.trim();
+                const answer = item.querySelector('.example-answer').value;
+                const reason = item.querySelector('.example-reason').value.trim();
+                const summary = item.querySelector('.example-summary').value.trim();
+                
+                if (question) {
+                    examples.push({
+                        question: question,
+                        answer: answer,
+                        reason: reason,
+                        summary: summary || null
+                    });
+                }
+            });
+            
             const data = {
                 id: parseInt(document.getElementById('questionId').value),
                 title: document.getElementById('questionTitle').value,
                 difficulty: document.getElementById('questionDifficulty').value,
                 surface: document.getElementById('questionSurface').value,
                 bottom: document.getElementById('questionBottom').value,
-                points: points
+                points: points,
+                examples: examples
             };
             
             const originalId = document.getElementById('originalQuestionId').value;
@@ -644,13 +895,81 @@
             const blob = new Blob([questionsData], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             
+            // 添加具体时间到文件名
+            const now = new Date();
+            const timestamp = now.toISOString().replace(/[:.]/g, '-').slice(0, 19);
+            
             const a = document.createElement('a');
             a.href = url;
-            a.download = `turtle_soup_questions_${new Date().toISOString().split('T')[0]}.json`;
+            a.download = `turtle_soup_questions_${timestamp}.json`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
+        }
+        
+        function openImportQuestionsModal() {
+            document.getElementById('importQuestionsModal').classList.add('show');
+        }
+        
+        function closeImportQuestionsModal() {
+            document.getElementById('importQuestionsModal').classList.remove('show');
+        }
+        
+        async function importQuestions() {
+            const fileInput = document.getElementById('questionsFileInput');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('请选择一个JSON文件');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const questionsData = JSON.parse(e.target.result);
+                    
+                    for (const question of questionsData) {
+                        // 兼容性处理：自动补充缺失字段
+                        if (!question.title || !question.surface || !question.bottom) {
+                            alert(`题目缺少必要字段，跳过导入`);
+                            continue;
+                        }
+                        
+                        // 补充缺失的字段
+                        const importQuestion = {
+                            id: question.id,
+                            title: question.title,
+                            surface: question.surface,
+                            bottom: question.bottom,
+                            points: question.points || [],
+                            examples: question.examples || [],
+                            difficulty: question.difficulty || '中等'
+                        };
+                        
+                        // 导入题目
+                        const response = await fetch('/api/admin/question', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(importQuestion)
+                        });
+                        
+                        if (!response.ok) {
+                            const error = await response.json();
+                            alert(`导入题目 "${question.title}" 失败: ${error.error || '未知错误'}`);
+                            continue;
+                        }
+                    }
+                    
+                    alert('题库导入成功！');
+                    closeImportQuestionsModal();
+                    await loadQuestions();
+                } catch (error) {
+                    alert('导入失败：' + error.message);
+                }
+            };
+            reader.readAsText(file);
         }
         
         function openUserModal() {
@@ -745,7 +1064,10 @@
             
             if (response.ok) {
                 closePasswordModal();
-                alert('密码修改成功');
+                alert('密码修改成功，用户将被登出');
+                // 通知前端用户被登出
+                await fetch(`/api/admin/user/${userId}/logout`);
+                await loadUsers();
             } else {
                 const error = await response.json();
                 alert(error.error || '修改失败');
@@ -757,9 +1079,14 @@
             if (response.ok) {
                 const blob = await response.blob();
                 const url = window.URL.createObjectURL(blob);
+                
+                // 添加具体时间到文件名
+                const now = new Date();
+                const timestamp = now.toISOString().replace(/[:.]/g, '-').slice(0, 19);
+                
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = 'turtlesoup.db';
+                a.download = `turtlesoup_${timestamp}.db`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
@@ -805,6 +1132,26 @@
                 const error = await response.json();
                 alert(error.error || '导入失败');
             }
+        }
+        
+        async function loadRecords() {
+            const response = await fetch('/api/admin/records');
+            const records = await response.json();
+            
+            const tbody = document.getElementById('recordsTable');
+            tbody.innerHTML = '';
+            
+            records.forEach(record => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${record.username}</td>
+                    <td>${record.question_title}</td>
+                    <td>${record.question_content}</td>
+                    <td>${record.answer_content}</td>
+                    <td>${record.created_at}</td>
+                `;
+                tbody.appendChild(tr);
+            });
         }
         
         init();
