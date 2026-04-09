@@ -628,8 +628,14 @@
                 const container = document.getElementById('historyList');
                 container.innerHTML = '';
 
-                for (const [groupName, sessions] of Object.entries(groups)) {
-                    if (sessions.length === 0) continue;
+                // 按照正确的顺序处理分组
+                const groupOrder = ['今天', '昨天', '7天内', '30天内', '更早'];
+                
+                groupOrder.forEach(groupName => {
+                    const sessions = groups[groupName];
+                    if (!sessions || sessions.length === 0) return;
+                    
+                    // 按更新时间倒序排序，最新的在前
                     sessions.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
 
                     const groupDiv = document.createElement('div');
@@ -653,7 +659,7 @@
                         groupDiv.appendChild(item);
                     });
                     container.appendChild(groupDiv);
-                }
+                });
             } catch (e) { console.error("加载历史记录失败"); }
         }
 

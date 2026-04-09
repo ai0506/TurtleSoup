@@ -1,6 +1,6 @@
 import os
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, send_file
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from functools import wraps
@@ -141,10 +141,31 @@ def get_all_sessions():
         '更早': []
     }
     
+    # 使用北京时间进行分组判断
     now = datetime.now()
+    from datetime import timezone
+    # 设置北京时间时区
+    beijing_timezone = timezone(timedelta(hours=8))
+    # 获取当前北京时间
+    beijing_now = now.astimezone(beijing_timezone)
+    
     for s in sessions:
-        updated = datetime.strptime(s['updated_at'], '%Y-%m-%d %H:%M:%S')
-        diff = (now - updated).days
+        # 解析会话的更新时间 - 数据库存储的是UTC时间
+        updated_str = s['updated_at']
+        # 检查时间格式
+        if 'T' in updated_str:
+            # ISO格式
+            updated = datetime.fromisoformat(updated_str.replace('Z', '+00:00'))
+        else:
+            # 普通格式 - 假设是UTC时间
+            updated = datetime.strptime(updated_str, '%Y-%m-%d %H:%M:%S')
+            # 明确设置为UTC时间
+            updated = updated.replace(tzinfo=timezone.utc)
+        
+        # 转换为北京时间（UTC+8）
+        beijing_updated = updated.astimezone(beijing_timezone)
+        # 计算与北京时间的天数差
+        diff = (beijing_now - beijing_updated).days
         
         if diff == 0:
             grouped['今天'].append(s)
@@ -186,7 +207,14 @@ def send_message():
     if not session_id and question_id:
         # 不查找已存在的会话，每次都创建新会话
         question = Question.get(question_id)
-        name = f"{question['title']} - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        # 使用北京时间生成会话名称
+        now = datetime.now()
+        from datetime import timezone
+        # 设置北京时间时区
+        beijing_timezone = timezone(timedelta(hours=8))
+        # 获取当前北京时间
+        beijing_now = now.astimezone(beijing_timezone)
+        name = f"{question['title']} - {beijing_now.strftime('%Y-%m-%d %H:%M:%S')}"
         session_id = Session.create(current_user.id, question_id, name)
     
     if not session_id:
@@ -327,18 +355,26 @@ def admin_get_question(question_id):
 def admin_create_question():
     data = request.get_json()
     
-    # 自动生成题目ID
-    import sqlite3
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT MAX(id) FROM questions")
-    max_id = cursor.fetchone()[0]
-    conn.close()
+    # 检查是否提供了ID，如果提供则使用，否则自动生成
+    if 'id' in data and data['id']:
+        # 使用导入的ID
+        new_id = data['id']
+    else:
+        # 自动生成题目ID
+        import sqlite3
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT MAX(id) FROM questions")
+        max_id = cursor.fetchone()[0]
+        conn.close()
+        
+        new_id = max_id + 1 if max_id else 1
     
-    new_id = max_id + 1 if max_id else 1
-    
-    Question.create(new_id, data['title'], data['surface'], data['bottom'], data['points'], data.get('difficulty', '中等'), data.get('examples', []))
-    return jsonify({'success': True})
+    result = Question.create(new_id, data['title'], data['surface'], data['bottom'], data['points'], data.get('difficulty', '中等'), data.get('examples', []))
+    if result:
+        return jsonify({'success': True})
+    else:
+        return jsonify({'error': '题目ID已存在'}), 400
 
 @app.route('/api/admin/question/<int:question_id>', methods=['PUT'])
 @admin_required
@@ -500,4 +536,4 @@ if __name__ == '__main__':
     if os.path.exists(questions_json_path):
         load_questions_from_json(questions_json_path)
     
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=True)
+    app.run(debug=True)

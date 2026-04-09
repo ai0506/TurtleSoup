@@ -4,45 +4,74 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>管理后台 - 海龟汤推理游戏</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            /* 亮色主题配色 */
+            --bg-body: #f4f7f6;
+            --bg-panel: #ffffff;
+            --text-main: #333333;
+            --text-muted: #777777;
+            --border-color: #e0e0e0;
+
+            --primary: #4a69bd; /* 沉稳的蓝色，用于按钮和强调 */
+            --primary-hover: #3c559b;
+            
+            --success: #28a745;
+            --success-hover: #218838;
+            
+            --danger: #dc3545;
+            --danger-hover: #c82333;
+            
+            --secondary: #6c757d;
+            --secondary-hover: #5a6268;
+            
+            --warning: #ffc107;
+            --warning-hover: #e0a800;
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            font-family: 'Noto Sans SC', sans-serif;
         }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: #f5f5f5;
+            background-color: var(--bg-body);
+            color: var(--text-main);
             min-height: 100vh;
+            font-size: 14px;
         }
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 15px 20px;
+            height: 60px;
+            background: var(--bg-panel);
+            border-bottom: 1px solid var(--border-color);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 0 20px;
+            z-index: 100;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
         .header h1 {
-            font-size: 20px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--primary);
         }
         .header-right {
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 12px;
         }
         .nav-btn {
-            background: rgba(255,255,255,0.2);
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 5px;
-            cursor: pointer;
+            color: var(--text-main);
             text-decoration: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            transition: 0.2s;
         }
         .nav-btn:hover, .nav-btn.active {
-            background: rgba(255,255,255,0.3);
+            background: rgba(0,0,0,0.05);
         }
         .container {
             max-width: 1200px;
@@ -56,16 +85,20 @@
         }
         .tab-btn {
             padding: 10px 20px;
-            background: white;
-            border: 1px solid #ddd;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
             border-radius: 5px;
             cursor: pointer;
             transition: all 0.3s;
+            color: var(--text-main);
+        }
+        .tab-btn:hover {
+            border-color: var(--primary);
         }
         .tab-btn.active {
-            background: #667eea;
+            background: var(--primary);
             color: white;
-            border-color: #667eea;
+            border-color: var(--primary);
         }
         .tab-content {
             display: none;
@@ -79,10 +112,15 @@
             gap: 20px;
         }
         .card {
-            background: white;
+            background: var(--bg-panel);
             border-radius: 10px;
             padding: 20px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
         }
         .card-header {
             display: flex;
@@ -92,8 +130,8 @@
         }
         .card-title {
             font-size: 18px;
-            font-weight: bold;
-            color: #333;
+            font-weight: 500;
+            color: var(--text-main);
         }
         .card-actions {
             display: flex;
@@ -105,29 +143,50 @@
             border-radius: 5px;
             cursor: pointer;
             font-size: 14px;
-            transition: opacity 0.3s;
+            transition: all 0.3s;
+            font-weight: 400;
         }
         .btn:hover {
-            opacity: 0.8;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
         .btn-primary {
-            background: #667eea;
+            background: var(--primary);
             color: white;
+        }
+        .btn-primary:hover {
+            background: var(--primary-hover);
         }
         .btn-danger {
-            background: #e74c3c;
+            background: var(--danger);
             color: white;
+        }
+        .btn-danger:hover {
+            background: var(--danger-hover);
         }
         .btn-success {
-            background: #28a745;
+            background: var(--success);
             color: white;
+        }
+        .btn-success:hover {
+            background: var(--success-hover);
         }
         .btn-secondary {
-            background: #6c757d;
+            background: var(--secondary);
             color: white;
         }
+        .btn-secondary:hover {
+            background: var(--secondary-hover);
+        }
+        .btn-warning {
+            background: var(--warning);
+            color: #212529;
+        }
+        .btn-warning:hover {
+            background: var(--warning-hover);
+        }
         .card-body {
-            color: #666;
+            color: var(--text-muted);
             font-size: 14px;
             line-height: 1.6;
         }
@@ -140,7 +199,7 @@
             border-radius: 10px;
             font-size: 12px;
             background: #e8f0fe;
-            color: #667eea;
+            color: var(--primary);
         }
         .add-btn {
             margin-bottom: 20px;
@@ -161,18 +220,20 @@
             display: flex;
         }
         .modal-content {
-            background: white;
+            background: var(--bg-panel);
             padding: 30px;
             border-radius: 10px;
             max-width: 600px;
             width: 90%;
             max-height: 80vh;
             overflow-y: auto;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
         }
         .modal-title {
             font-size: 20px;
             margin-bottom: 20px;
-            color: #333;
+            color: var(--text-main);
+            font-weight: 500;
         }
         .form-group {
             margin-bottom: 15px;
@@ -180,15 +241,20 @@
         .form-group label {
             display: block;
             margin-bottom: 5px;
-            color: #555;
+            color: var(--text-main);
             font-weight: 500;
         }
         .form-group input, .form-group textarea, .form-group select {
             width: 100%;
             padding: 10px;
-            border: 1px solid #ddd;
+            border: 1px solid var(--border-color);
             border-radius: 5px;
             font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+            outline: none;
+            border-color: var(--primary);
         }
         .form-group textarea {
             min-height: 100px;
@@ -200,7 +266,7 @@
             margin-top: 20px;
         }
         .points-container {
-            border: 1px solid #e0e0e0;
+            border: 1px solid var(--border-color);
             border-radius: 5px;
             padding: 15px;
             margin-bottom: 15px;
@@ -215,24 +281,32 @@
             flex: 1;
         }
         .point-item .remove-point {
-            background: #e74c3c;
+            background: var(--danger);
             color: white;
             border: none;
             padding: 5px 10px;
             border-radius: 3px;
             cursor: pointer;
+            transition: background 0.3s;
+        }
+        .point-item .remove-point:hover {
+            background: var(--danger-hover);
         }
         .add-point-btn {
-            background: #28a745;
+            background: var(--success);
             color: white;
             border: none;
             padding: 8px 15px;
             border-radius: 5px;
             cursor: pointer;
             margin-top: 10px;
+            transition: background 0.3s;
+        }
+        .add-point-btn:hover {
+            background: var(--success-hover);
         }
         .table-container {
-            background: white;
+            background: var(--bg-panel);
             border-radius: 10px;
             overflow: hidden;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
@@ -244,21 +318,29 @@
         th, td {
             padding: 15px;
             text-align: left;
-            border-bottom: 1px solid #e0e0e0;
+            border-bottom: 1px solid var(--border-color);
         }
         th {
             background: #f8f9fa;
             font-weight: 600;
-            color: #333;
+            color: var(--text-main);
+        }
+        tr:hover {
+            background-color: #f8f9fa;
         }
         .inline-edit {
             width: 80px;
             padding: 5px;
-            border: 1px solid #ddd;
+            border: 1px solid var(--border-color);
             border-radius: 3px;
+            transition: border-color 0.3s;
+        }
+        .inline-edit:focus {
+            outline: none;
+            border-color: var(--primary);
         }
         .examples-container {
-            border: 1px solid #e0e0e0;
+            border: 1px solid var(--border-color);
             border-radius: 5px;
             padding: 15px;
             margin-bottom: 15px;
@@ -272,7 +354,8 @@
         }
         .example-item h4 {
             margin-bottom: 10px;
-            color: #333;
+            color: var(--text-main);
+            font-weight: 500;
         }
         .example-item .form-row {
             display: flex;
@@ -283,25 +366,117 @@
         .example-item .form-row label {
             width: 80px;
             font-weight: 500;
+            color: var(--text-main);
         }
         .example-item .form-row input, .example-item .form-row textarea, .example-item .form-row select {
             flex: 1;
             padding: 8px;
-            border: 1px solid #ddd;
+            border: 1px solid var(--border-color);
             border-radius: 3px;
+            transition: border-color 0.3s;
+        }
+        .example-item .form-row input:focus, .example-item .form-row textarea:focus, .example-item .form-row select:focus {
+            outline: none;
+            border-color: var(--primary);
         }
         .example-item .form-row textarea {
             min-height: 60px;
             resize: vertical;
         }
         .example-item .remove-example {
-            background: #e74c3c;
+            background: var(--danger);
             color: white;
             border: none;
             padding: 5px 10px;
             border-radius: 3px;
             cursor: pointer;
             margin-top: 10px;
+            transition: background 0.3s;
+        }
+        .example-item .remove-example:hover {
+            background: var(--danger-hover);
+        }
+        .batch-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+        .select-all {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+        }
+        .select-all input {
+            cursor: pointer;
+        }
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .status-active {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .status-inactive {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .difficulty-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .difficulty-easy {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .difficulty-medium {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .difficulty-hard {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .difficulty-abstract {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+        .points-list {
+            margin-top: 10px;
+        }
+        .point-item {
+            background: #f8f9fa;
+            padding: 8px;
+            border-radius: 5px;
+            margin-bottom: 5px;
+            font-size: 13px;
+        }
+        .examples-list {
+            margin-top: 10px;
+        }
+        .example-item {
+            background: #f8f9fa;
+            padding: 8px;
+            border-radius: 5px;
+            margin-bottom: 5px;
+            font-size: 13px;
+        }
+        .example-number {
+            font-weight: 500;
+            color: var(--primary);
+            margin-right: 5px;
+        }
+        .empty-hint {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+            font-style: italic;
         }
     </style>
 </head>
@@ -493,6 +668,28 @@
         </div>
     </div>
     
+    <!-- 密码修改模态框 -->
+    <div class="modal" id="passwordModal">
+        <div class="modal-content">
+            <h2 class="modal-title">修改密码</h2>
+            <form id="passwordForm">
+                <input type="hidden" id="userIdForPassword">
+                <div class="form-group">
+                    <label>新密码</label>
+                    <input type="password" id="newUserPassword" required>
+                </div>
+                <div class="form-group">
+                    <label>确认新密码</label>
+                    <input type="password" id="confirmNewPassword" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary">保存</button>
+                    <button type="button" class="btn btn-secondary" id="cancelPasswordBtn">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
     <script>
         let questions = [];
         let users = [];
@@ -615,10 +812,16 @@
             
             if (!confirm(`确定要删除选中的 ${questionIds.length} 道题目吗？`)) return;
             
+            // 串行删除，确保按顺序执行，避免ID冲突
+            let successCount = 0;
             for (const id of questionIds) {
-                await fetch(`/api/admin/question/${id}`, { method: 'DELETE' });
+                const response = await fetch(`/api/admin/question/${id}`, { method: 'DELETE' });
+                if (response.ok) {
+                    successCount++;
+                }
             }
             
+            alert(`删除完成，成功删除 ${successCount} 道题目`);
             await loadQuestions();
         }
         
@@ -627,13 +830,8 @@
             const response = await fetch('/api/admin/questions');
             const questionsList = await response.json();
             
-            // 对每个题目获取完整信息（包含评分点）
-            questions = [];
-            for (const q of questionsList) {
-                const detailResponse = await fetch(`/api/admin/question/${q.id}`);
-                const fullQuestion = await detailResponse.json();
-                questions.push(fullQuestion);
-            }
+            // 直接使用返回的完整信息，不需要再单独请求每个题目
+            questions = questionsList;
             
             renderQuestions();
         }
@@ -685,6 +883,10 @@
             
             // 绑定复选框事件
             bindQuestionCheckboxes();
+            // 更新全选复选框状态
+            updateSelectAllStatus();
+            // 更新批量删除按钮状态
+            updateBatchDeleteButton();
         }
         
         function renderUsers() {
@@ -889,15 +1091,34 @@
             await loadQuestions();
         }
         
-        function exportQuestions() {
-            // 创建包含所有题目的JSON文件
-            const questionsData = JSON.stringify(questions, null, 2);
+        async function exportQuestions() {
+            // 直接从后端获取完整的题目数据，确保导出的数据完整
+            const response = await fetch('/api/admin/questions');
+            const questionsList = await response.json();
+            
+            // 修正数据，确保surface和bottom字段完整
+            const completeQuestions = await Promise.all(questionsList.map(async (q) => {
+                const detailResponse = await fetch(`/api/admin/question/${q.id}`);
+                const fullQuestion = await detailResponse.json();
+                return {
+                    id: fullQuestion.id,
+                    title: fullQuestion.title,
+                    surface: fullQuestion.surface,
+                    bottom: fullQuestion.bottom,
+                    points: fullQuestion.points,
+                    examples: fullQuestion.examples,
+                    difficulty: fullQuestion.difficulty
+                };
+            }));
+            
+            const questionsData = JSON.stringify(completeQuestions, null, 2);
             const blob = new Blob([questionsData], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             
-            // 添加具体时间到文件名
+            // 添加北京时间到文件名
             const now = new Date();
-            const timestamp = now.toISOString().replace(/[:.]/g, '-').slice(0, 19);
+            const beijingTime = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+            const timestamp = beijingTime.toISOString().replace(/[:.]/g, '-').slice(0, 19);
             
             const a = document.createElement('a');
             a.href = url;
@@ -930,13 +1151,18 @@
                 try {
                     const questionsData = JSON.parse(e.target.result);
                     
-                    for (const question of questionsData) {
-                        // 兼容性处理：自动补充缺失字段
-                        if (!question.title || !question.surface || !question.bottom) {
-                            alert(`题目缺少必要字段，跳过导入`);
-                            continue;
-                        }
-                        
+                    // 过滤出有效的题目数据
+                    const validQuestions = questionsData.filter(question => 
+                        question.title && question.surface && question.bottom
+                    );
+                    
+                    if (validQuestions.length === 0) {
+                        alert('没有有效的题目数据');
+                        return;
+                    }
+                    
+                    // 并行发送导入请求，提高速度
+                    const importPromises = validQuestions.map(question => {
                         // 补充缺失的字段
                         const importQuestion = {
                             id: question.id,
@@ -948,21 +1174,34 @@
                             difficulty: question.difficulty || '中等'
                         };
                         
-                        // 导入题目
-                        const response = await fetch('/api/admin/question', {
+                        return fetch('/api/admin/question', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(importQuestion)
                         });
-                        
-                        if (!response.ok) {
-                            const error = await response.json();
-                            alert(`导入题目 "${question.title}" 失败: ${error.error || '未知错误'}`);
-                            continue;
+                    });
+                    
+                    const results = await Promise.all(importPromises);
+                    
+                    // 检查导入结果
+                    let successCount = 0;
+                    let errorCount = 0;
+                    
+                    for (let i = 0; i < results.length; i++) {
+                        const result = results[i];
+                        if (result.ok) {
+                            successCount++;
+                        } else {
+                            errorCount++;
                         }
                     }
                     
-                    alert('题库导入成功！');
+                    if (errorCount > 0) {
+                        alert(`导入完成，${successCount} 道题目成功，${errorCount} 道题目失败`);
+                    } else {
+                        alert(`题库导入成功！共导入 ${successCount} 道题目`);
+                    }
+                    
                     closeImportQuestionsModal();
                     await loadQuestions();
                 } catch (error) {
@@ -1080,9 +1319,10 @@
                 const blob = await response.blob();
                 const url = window.URL.createObjectURL(blob);
                 
-                // 添加具体时间到文件名
+                // 添加北京时间到文件名
                 const now = new Date();
-                const timestamp = now.toISOString().replace(/[:.]/g, '-').slice(0, 19);
+                const beijingTime = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+                const timestamp = beijingTime.toISOString().replace(/[:.]/g, '-').slice(0, 19);
                 
                 const a = document.createElement('a');
                 a.href = url;
@@ -1148,10 +1388,17 @@
                     <td>${record.question_title}</td>
                     <td>${record.question_content}</td>
                     <td>${record.answer_content}</td>
-                    <td>${record.created_at}</td>
+                    <td>${formatBeijingTime(record.created_at)}</td>
                 `;
                 tbody.appendChild(tr);
             });
+        }
+        
+        // 将UTC时间转换为北京时间
+        function formatBeijingTime(utcTimeString) {
+            const utcDate = new Date(utcTimeString);
+            const beijingDate = new Date(utcDate.getTime() + 8 * 60 * 60 * 1000);
+            return beijingDate.toISOString().slice(0, 19).replace('T', ' ');
         }
         
         init();
